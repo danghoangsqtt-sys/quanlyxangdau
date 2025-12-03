@@ -1,0 +1,5 @@
+{
+    "name": "PRO FLEET MANAGER",
+    "description": "A secure, offline desktop application for fleet and fuel management using Electron and SQLite.",
+    "requestFramePermissions": []
+}

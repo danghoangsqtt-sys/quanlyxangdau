@@ -1,0 +1,29 @@
+{
+    "name": "pro-fleet-manager",
+    "version": "1.0.0",
+    "description": "Professional Fleet & Fuel Management System",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "rebuild": "electron-rebuild -f -w better-sqlite3"
+    },
+    "keywords": [
+        "electron",
+        "fleet",
+        "fuel",
+        "sqlite",
+        "management"
+    ],
+    "author": "Senior Developer",
+    "license": "ISC",
+    "dependencies": {
+        "@fortawesome/fontawesome-free": "^6.5.1",
+        "better-sqlite3": "^11.0.0",
+        "bootstrap": "^5.3.3",
+        "fs-extra": "^11.2.0"
+    },
+    "devDependencies": {
+        "electron": "^30.0.0",
+        "electron-rebuild": "^3.2.9"
+    }
+}

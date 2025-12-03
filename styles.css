@@ -1,0 +1,55 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f6f9;
+}
+
+.text-navy {
+    color: #001f3f;
+}
+
+.bg-navy {
+    background-color: #001f3f !important;
+}
+
+.bg-primary-subtle {
+    background-color: rgba(0, 31, 63, 0.2) !important;
+    color: #001f3f !important;
+    font-weight: bold;
+}
+
+.sidebar .nav-link {
+    color: #ccc;
+    transition: all 0.3s;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.card {
+    border-radius: 8px;
+}
+
+.modal-header {
+    background-color: #001f3f;
+    color: white;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
