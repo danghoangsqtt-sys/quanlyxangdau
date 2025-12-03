@@ -12,7 +12,7 @@ function createWindow() {
         width: 1400,
         height: 900,
         title: "HỆ THỐNG QUẢN LÝ XĂNG - DẦU SQTT",
-        icon: path.join(__dirname, 'assets/icon.png'),
+        icon: path.join(__dirname, 'assets/oil-station.png'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
