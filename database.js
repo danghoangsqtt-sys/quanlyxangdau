@@ -1,11 +1,18 @@
-
-
 const Database = require('better-sqlite3');
 const crypto = require('crypto');
 const path = require('path');
-
+const { app } = require('electron');
+const fs = require('fs');
 // Khởi tạo DB phiên bản SQTT 2025 v5.0
-const db = new Database('sqtt_fuel_manager.db');
+// Lấy đường dẫn thư mục AppData của người dùng
+// (Ví dụ: C:\Users\TenBan\AppData\Roaming\Quan Ly Xang Dau SQTT)
+// Lưu ý: Vì database.js được require trong main process, ta cần cách lấy path an toàn
+const userDataPath = (process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME));
+const dbPath = path.join(userDataPath, 'sqtt_fuel_manager.db');
+
+console.log("Database path:", dbPath); // Để debug xem file nằm ở đâu
+
+const db = new Database(dbPath);
 
 // --- TIỆN ÍCH ---
 function hashPassword(password) {
@@ -458,5 +465,41 @@ exports.suaNhatKy = (data) => {
     `);
     return stmt.run(data);
 };
+exports.saoLuuTuDong = async () => {
+    try {
+        // 1. Xác định đường dẫn file DB hiện tại
+        // db.name là thuộc tính của better-sqlite3 chứa đường dẫn tuyệt đối đến file DB
+        const dbPath = db.name;
+        const dbDir = path.dirname(dbPath);
 
+        // 2. Tạo thư mục 'Backups' nếu chưa có
+        const backupDir = path.join(dbDir, 'Backups');
+        if (!fs.existsSync(backupDir)) {
+            fs.mkdirSync(backupDir);
+        }
+
+        // 3. Tạo tên file backup theo tháng (VD: SQTT_Backup_2025_12.db)
+        const date = new Date();
+        const monthStr = `${date.getFullYear()}_${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        const backupFileName = `SQTT_Backup_${monthStr}.db`;
+        const backupPath = path.join(backupDir, backupFileName);
+
+        // 4. Kiểm tra: Nếu tháng này chưa backup thì mới làm
+        if (!fs.existsSync(backupPath)) {
+            console.log("Đang tiến hành sao lưu dữ liệu tháng " + monthStr + "...");
+
+            // Sử dụng hàm backup() native của better-sqlite3 (An toàn, không lo lỗi khi DB đang mở)
+            await db.backup(backupPath);
+
+            console.log("Sao lưu thành công tại:", backupPath);
+            return { success: true, path: backupPath };
+        } else {
+            return { success: false, message: "Đã có bản sao lưu tháng này." };
+        }
+
+    } catch (err) {
+        console.error("Lỗi sao lưu:", err);
+        return { success: false, error: err.message };
+    }
+};
 initDB();

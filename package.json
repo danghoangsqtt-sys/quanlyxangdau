@@ -5,7 +5,10 @@
     "main": "main.js",
     "scripts": {
         "start": "electron .",
-        "rebuild": "electron-rebuild -f -w better-sqlite3"
+        "rebuild": "electron-rebuild -f -w better-sqlite3",
+        "postinstall": "electron-builder install-app-deps",
+        "pack": "electron-builder --dir",
+        "dist": "electron-builder"
     },
     "keywords": [
         "electron",
@@ -24,6 +27,32 @@
     },
     "devDependencies": {
         "electron": "^30.0.0",
+        "electron-builder": "^24.13.3",
         "electron-rebuild": "^3.2.9"
+    },
+    "build": {
+        "appId": "com.sqtt.quanlyxangdau",
+        "productName": "Quan Ly Xang Dau SQTT",
+        "directories": {
+            "output": "dist"
+        },
+        "files": [
+            "**/*",
+            "!dist/*",
+            "!sqtt_fuel_manager.db"
+        ],
+        "asarUnpack": [
+            "node_modules/better-sqlite3",
+            "sqtt_fuel_manager.db"
+        ],
+        "win": {
+            "target": "nsis",
+            "icon": "assets/icon.png"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true
+        }
     }
 }

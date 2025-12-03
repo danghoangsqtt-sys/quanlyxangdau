@@ -23,7 +23,22 @@ function createWindow() {
     mainWindow.setMenuBarVisibility(false);
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+    createWindow();
+
+    // Gọi hàm sao lưu tự động
+    const backupResult = await db.saoLuuTuDong();
+
+    // (Tùy chọn) Thông báo cho người dùng biết nếu vừa backup thành công
+    if (backupResult.success) {
+        dialog.showMessageBox(mainWindow, {
+            type: 'info',
+            title: 'Hệ thống SQTT',
+            message: 'Hệ thống đã tự động sao lưu dữ liệu tháng này an toàn!',
+            detail: 'File lưu tại: ' + backupResult.path
+        });
+    }
+});
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
