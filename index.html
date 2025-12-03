@@ -4,153 +4,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Quản Lý Vận Tải 2.0</title>
+    <title>Hệ Thống Quản Lý Vận Tải 3.0 Pro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
 
-    <!-- SECTION LOGIN -->
-    <div id="login-section" class="d-flex justify-content-center align-items-center vh-100 bg-military-dark">
-        <div class="card shadow-lg p-4 login-card">
+    <!-- LOGIN SECTION -->
+    <div id="login-section" class="d-flex justify-content-center align-items-center vh-100 login-bg">
+        <div class="card shadow-lg p-5 login-panel" style="width: 420px;">
             <div class="text-center mb-4">
-                <div class="mb-2"><i class="fas fa-star fa-3x text-warning"></i></div>
-                <h4 class="text-uppercase fw-bold text-military">Cổng Đăng Nhập Hệ Thống</h4>
-                <div class="text-muted small">Phần mềm Quản lý Vận tải & Xăng dầu</div>
+                <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                <h4 class="fw-bold text-uppercase text-military">Hệ Thống Quản Lý</h4>
+                <div class="text-muted fw-bold">VẬN TẢI & XĂNG DẦU CHIẾN LƯỢC</div>
             </div>
             <form id="login-form">
-                <div class="mb-3">
-                    <div class="input-group">
-                        <span class="input-group-text bg-military text-white"><i class="fas fa-user"></i></span>
-                        <input type="text" id="username" class="form-control" placeholder="Tên đăng nhập" required>
-                    </div>
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="username" placeholder="Tên đăng nhập" required>
+                    <label for="username"><i class="fas fa-user me-2"></i>Tên đăng nhập</label>
                 </div>
-                <div class="mb-4">
-                    <div class="input-group">
-                        <span class="input-group-text bg-military text-white"><i class="fas fa-key"></i></span>
-                        <input type="password" id="password" class="form-control" placeholder="Mật khẩu" required>
-                    </div>
+                <div class="form-floating mb-4">
+                    <input type="password" class="form-control" id="password" placeholder="Mật khẩu" required>
+                    <label for="password"><i class="fas fa-lock me-2"></i>Mật khẩu</label>
                 </div>
-                <button type="submit" class="btn btn-military w-100 fw-bold py-2">TRUY CẬP</button>
-                <div id="login-error" class="text-danger text-center mt-3 d-none small fw-bold">
-                    <i class="fas fa-exclamation-circle"></i> Sai thông tin đăng nhập!
+                <button type="submit" class="btn btn-military w-100 py-3 fw-bold text-uppercase shadow">
+                    <i class="fas fa-sign-in-alt me-2"></i> Truy cập hệ thống
+                </button>
+                <div id="login-error" class="text-danger text-center mt-3 d-none fw-bold small">
+                    <i class="fas fa-exclamation-triangle"></i> Thông tin đăng nhập không đúng!
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- SECTION DASHBOARD -->
+    <!-- MAIN DASHBOARD -->
     <div id="dashboard-section" class="d-none vh-100 d-flex flex-column">
 
-        <!-- Header -->
-        <header class="navbar navbar-dark bg-military shadow px-3 py-2">
+        <!-- Top Navbar -->
+        <header class="navbar navbar-dark bg-military shadow-sm px-4 py-2" style="z-index: 1000;">
             <div class="d-flex align-items-center">
-                <i class="fas fa-shield-alt fa-lg text-warning me-2"></i>
-                <span class="navbar-brand fw-bold mb-0 h1 text-uppercase">Pro Fleet Manager 2.0</span>
+                <i class="fas fa-shield-alt fa-2x text-warning me-3"></i>
+                <div>
+                    <h5 class="mb-0 fw-bold text-uppercase text-white">Pro Fleet Manager</h5>
+                    <small class="text-white-50" style="font-size: 0.75rem;">PHIÊN BẢN 3.0 PRO - MILITARY
+                        EDITION</small>
+                </div>
             </div>
-            <div class="text-white">
-                <span class="me-3 small"><i class="fas fa-user-tag me-1"></i> <span
-                        id="current-user-name">Admin</span></span>
-                <button id="logout-btn" class="btn btn-sm btn-outline-warning">Đăng Xuất</button>
+            <div class="d-flex align-items-center text-white">
+                <div class="me-3 text-end">
+                    <div class="fw-bold" id="current-user-name">Administrator</div>
+                    <small class="text-warning">Quản Trị Hệ Thống</small>
+                </div>
+                <button id="logout-btn" class="btn btn-sm btn-outline-light"><i class="fas fa-power-off"></i></button>
             </div>
         </header>
 
         <div class="d-flex flex-grow-1 overflow-hidden">
             <!-- Sidebar -->
-            <nav class="bg-dark text-white sidebar p-3 d-flex flex-column" style="width: 250px;">
-                <div class="small text-muted text-uppercase fw-bold mb-2 ps-2">Chức Năng Chính</div>
-                <ul class="nav flex-column nav-pills gap-1">
+            <nav class="sidebar p-3 d-flex flex-column" style="width: 260px; min-width: 260px;">
+                <div class="sidebar-header text-center">
+                    <div class="small text-uppercase text-white-50 fw-bold">Menu Điều Hướng</div>
+                </div>
+                <ul class="nav flex-column gap-2">
                     <li class="nav-item">
-                        <button class="nav-link active w-100 text-start" onclick="switchTab('tab-tongquan')">
-                            <i class="fas fa-chart-line me-2 w-20"></i> Tổng Quan
-                        </button>
+                        <a href="#" class="nav-link active" onclick="switchTab('tab-tongquan')">
+                            <i class="fas fa-chart-pie me-3 w-20"></i> TỔNG QUAN
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link w-100 text-start" onclick="switchTab('tab-capphat')">
-                            <i class="fas fa-gas-pump me-2 w-20"></i> Lệnh Cấp Phát
-                        </button>
-                    </li>
-                    <div class="small text-muted text-uppercase fw-bold mt-3 mb-2 ps-2">Quản Lý Hồ Sơ</div>
-                    <li class="nav-item">
-                        <button class="nav-link w-100 text-start" onclick="switchTab('tab-hoso-xe')">
-                            <i class="fas fa-truck-moving me-2 w-20"></i> Hồ Sơ Xe
-                        </button>
+                        <a href="#" class="nav-link" onclick="switchTab('tab-capphat')">
+                            <i class="fas fa-gas-pump me-3 w-20"></i> LỆNH CẤP PHÁT
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link w-100 text-start" onclick="switchTab('tab-hoso-taixe')">
-                            <i class="fas fa-id-card me-2 w-20"></i> Hồ Sơ Tài Xế
-                        </button>
+                        <a href="#" class="nav-link" onclick="switchTab('tab-hoso-xe')">
+                            <i class="fas fa-truck-moving me-3 w-20"></i> HỒ SƠ XE
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" onclick="switchTab('tab-hoso-taixe')">
+                            <i class="fas fa-id-card me-3 w-20"></i> HỒ SƠ TÀI XẾ
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" onclick="switchTab('tab-danhmuc')">
+                            <i class="fas fa-boxes me-3 w-20"></i> DANH MỤC
+                        </a>
                     </li>
                 </ul>
-                <div class="mt-auto text-center text-muted small">Ver 2.0 Pro - Build 2024</div>
+                <div class="mt-auto text-center text-white-50 small">
+                    &copy; 2024 Secure Fleet<br>Build: v3.0.1
+                </div>
             </nav>
 
-            <!-- Main Content -->
-            <main class="flex-grow-1 bg-light p-4 overflow-auto position-relative">
+            <!-- Main Content Area -->
+            <main class="flex-grow-1 bg-light p-4 overflow-auto">
 
                 <!-- TAB 1: TỔNG QUAN -->
                 <div id="tab-tongquan" class="content-tab fade-in">
-                    <h5 class="text-military fw-bold border-bottom pb-2 mb-3">TÌNH HÌNH HOẠT ĐỘNG TRONG THÁNG</h5>
+                    <h5 class="text-military fw-bold text-uppercase border-bottom pb-2 mb-4">
+                        <i class="fas fa-tachometer-alt me-2"></i> Báo Cáo Tình Hình Hoạt Động
+                    </h5>
 
-                    <div class="row g-3 mb-4">
+                    <div class="row g-4 mb-4">
                         <div class="col-md-3">
-                            <div class="card stat-card border-success border-start border-4">
-                                <div class="card-body">
-                                    <div class="small text-muted fw-bold">TỔNG NHIÊN LIỆU</div>
-                                    <div class="fs-4 fw-bold text-success"><span id="tk-lit">0</span> <small
-                                            class="fs-6 text-dark">Lít</small></div>
+                            <div class="card stat-card p-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="stat-icon bg-success text-white me-3"><i class="fas fa-oil-can"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small fw-bold text-uppercase">Nhiên Liệu Cấp</div>
+                                        <h4 class="mb-0 fw-bold text-dark"><span id="tk-lit">0</span></h4>
+                                        <small class="text-success fw-bold">Đơn vị</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card stat-card border-primary border-start border-4">
-                                <div class="card-body">
-                                    <div class="small text-muted fw-bold">TỔNG NGÂN SÁCH</div>
-                                    <div class="fs-4 fw-bold text-primary"><span id="tk-tien">0</span> <small
-                                            class="fs-6 text-dark">VNĐ</small></div>
+                            <div class="card stat-card p-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="stat-icon bg-danger text-white me-3"><i
+                                            class="fas fa-money-bill-wave"></i></div>
+                                    <div>
+                                        <div class="text-muted small fw-bold text-uppercase">Ngân Sách Dùng</div>
+                                        <h4 class="mb-0 fw-bold text-dark"><span id="tk-tien">0</span></h4>
+                                        <small class="text-danger fw-bold">VNĐ</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card stat-card border-warning border-start border-4">
-                                <div class="card-body">
-                                    <div class="small text-muted fw-bold">XE ĐANG CÔNG TÁC</div>
-                                    <div class="fs-4 fw-bold text-warning"><span id="tk-xe">0</span> <small
-                                            class="fs-6 text-dark">Xe</small></div>
+                            <div class="card stat-card p-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="stat-icon bg-warning text-dark me-3"><i class="fas fa-truck"></i></div>
+                                    <div>
+                                        <div class="text-muted small fw-bold text-uppercase">Xe Công Tác</div>
+                                        <h4 class="mb-0 fw-bold text-dark"><span id="tk-xe">0</span></h4>
+                                        <small class="text-warning fw-bold">Phương tiện</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <div class="card stat-card border-info border-start border-4">
-                                <div class="card-body">
-                                    <div class="small text-muted fw-bold">TỔNG KM VẬN HÀNH</div>
-                                    <div class="fs-4 fw-bold text-info"><span id="tk-km">0</span> <small
-                                            class="fs-6 text-dark">Km</small></div>
+                            <div class="card stat-card p-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="stat-icon bg-primary text-white me-3"><i class="fas fa-road"></i></div>
+                                    <div>
+                                        <div class="text-muted small fw-bold text-uppercase">Km Vận Hành</div>
+                                        <h4 class="mb-0 fw-bold text-dark"><span id="tk-km">0</span></h4>
+                                        <small class="text-primary fw-bold">Kilomet</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card shadow-sm">
-                        <div
-                            class="card-header bg-secondary text-white fw-bold d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-history me-1"></i> Nhật Ký Cấp Phát Gần Nhất</span>
-                            <button class="btn btn-sm btn-light text-dark fw-bold"><i class="fas fa-print"></i> In Báo
-                                Cáo</button>
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="fw-bold text-military mb-0"><i class="fas fa-list me-2"></i>NHẬT KÝ CẤP PHÁT
+                                    GẦN NHẤT</h6>
+                                <button class="btn btn-sm btn-outline-success"><i class="fas fa-file-excel me-1"></i>
+                                    Xuất Báo Cáo</button>
+                            </div>
                         </div>
                         <div class="table-responsive">
-                            <table class="table table-hover table-striped mb-0 small align-middle">
-                                <thead class="table-light">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
                                     <tr>
                                         <th>Thời Gian</th>
-                                        <th>Biển Số</th>
-                                        <th>Người Lái</th>
-                                        <th>ODO Cũ</th>
-                                        <th>ODO Mới</th>
-                                        <th>Quãng Đường</th>
-                                        <th>Số Lít</th>
+                                        <th>Loại Hình</th>
+                                        <th>Phương Tiện</th>
+                                        <th>Cấp Bậc / Lái Xe</th>
+                                        <th>Nội Dung Cấp</th>
+                                        <th>Số Lượng</th>
                                         <th>Thành Tiền</th>
                                     </tr>
                                 </thead>
@@ -160,70 +189,127 @@
                     </div>
                 </div>
 
-                <!-- TAB 2: CẤP PHÁT -->
+                <!-- TAB 2: CẤP PHÁT (V3.0 Logic) -->
                 <div id="tab-capphat" class="content-tab d-none fade-in">
                     <div class="row justify-content-center">
-                        <div class="col-lg-8">
-                            <div class="card shadow border-0">
-                                <div class="card-header bg-military text-white fw-bold py-3">
-                                    <i class="fas fa-file-invoice me-2"></i> LỆNH CẤP PHÁT NHIÊN LIỆU
+                        <div class="col-lg-10">
+                            <div class="card shadow-sm border-0">
+                                <div class="card-header bg-military py-3">
+                                    <h5 class="text-white fw-bold mb-0 text-uppercase"><i
+                                            class="fas fa-file-signature me-2"></i> Lệnh Cấp Phát Nhiên Liệu & Vật Tư
+                                    </h5>
                                 </div>
                                 <div class="card-body p-4">
                                     <form id="form-capphat">
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label fw-bold small">Phương Tiện</label>
-                                                <select id="cp-xe" class="form-select" required></select>
-                                                <div id="cp-info-xe" class="form-text text-primary fst-italic"></div>
+                                        <!-- Section 1: Cấu hình cơ bản -->
+                                        <div class="row g-4 mb-4 bg-light p-3 rounded mx-0 border">
+                                            <div class="col-md-6 border-end">
+                                                <label class="form-label fw-bold text-military small">1. NGUỒN CẤP
+                                                    PHÁT</label>
+                                                <div class="d-flex gap-4">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="cp_nguon"
+                                                            id="src_kho" value="KHO" checked>
+                                                        <label class="form-check-label fw-bold" for="src_kho">Tại Kho
+                                                            Đơn Vị</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="cp_nguon"
+                                                            id="src_ngoai" value="MUA_NGOAI">
+                                                        <label class="form-check-label fw-bold text-danger"
+                                                            for="src_ngoai">Mua Ngoài (Tiền mặt)</label>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="form-label fw-bold small">Người Nhận (Lái Xe)</label>
-                                                <select id="cp-taixe" class="form-select" required></select>
+                                                <label class="form-label fw-bold text-military small">2. MỤC ĐÍCH SỬ
+                                                    DỤNG</label>
+                                                <div class="d-flex gap-4">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="cp_mucdich"
+                                                            id="pur_congtac" value="CONG_TAC" checked>
+                                                        <label class="form-check-label" for="pur_congtac">Vận Tải
+                                                            (Xe)</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="cp_mucdich"
+                                                            id="pur_mayphat" value="MAY_PHAT">
+                                                        <label class="form-check-label" for="pur_mayphat">Chạy Máy Phát
+                                                            Điện</label>
+                                                    </div>
+                                                </div>
                                             </div>
+                                        </div>
 
+                                        <!-- Section 2: Thông tin chi tiết -->
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-5">
+                                                <label class="form-label small fw-bold">Phương Tiện / Thiết Bị</label>
+                                                <select id="cp-xe" class="form-select border-success" required></select>
+                                                <div id="cp-info-xe" class="form-text text-primary fst-italic mt-1">
+                                                </div>
+                                            </div>
                                             <div class="col-md-4">
-                                                <label class="form-label small">Ngày Giờ</label>
+                                                <label class="form-label small fw-bold">Loại Nhiên Liệu</label>
+                                                <select id="cp-loainl" class="form-select" required></select>
+                                                <div id="cp-info-unit" class="form-text text-end fw-bold">---</div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small fw-bold">Ngày Giờ</label>
                                                 <input type="datetime-local" id="cp-ngay" class="form-control" required>
                                             </div>
+
+                                            <div class="col-md-12">
+                                                <label class="form-label small fw-bold">Người Nhận (Lái Xe / Cán
+                                                    Bộ)</label>
+                                                <select id="cp-taixe" class="form-select" required></select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Section 3: ODO (Ẩn hiện thông minh) -->
+                                        <div class="row g-3 mb-4 p-3 border rounded bg-white" id="section-odo">
                                             <div class="col-md-4">
                                                 <label class="form-label small">ODO Cũ (Km)</label>
                                                 <input type="number" id="cp-odo-cu" class="form-control bg-light"
                                                     readonly>
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label fw-bold small text-danger">ODO Mới (Km)</label>
-                                                <input type="number" id="cp-odo-moi" class="form-control border-danger"
-                                                    required>
+                                                <label class="form-label small fw-bold text-danger">ODO Mới (Km)</label>
+                                                <input type="number" id="cp-odo-moi"
+                                                    class="form-control border-danger fw-bold">
                                             </div>
-
-                                            <div class="col-12">
-                                                <div class="alert alert-light border d-flex align-items-center py-2"
-                                                    role="alert">
-                                                    <i class="fas fa-calculator me-2 text-muted"></i>
-                                                    <div>Quãng đường vận hành: <strong id="cp-km-text"
-                                                            class="text-primary">0 km</strong></div>
+                                            <div class="col-md-4 d-flex align-items-center justify-content-center">
+                                                <div class="text-center">
+                                                    <div class="small text-muted">Quãng đường hoạt động</div>
+                                                    <div id="cp-km-text" class="h4 text-success fw-bold mb-0">0 Km</div>
                                                 </div>
                                             </div>
+                                        </div>
 
+                                        <!-- Section 4: Tính toán -->
+                                        <div class="row g-3">
                                             <div class="col-md-4">
-                                                <label class="form-label fw-bold small">Số Lít Thực Tế</label>
-                                                <input type="number" step="0.01" id="cp-lit" class="form-control"
-                                                    required>
+                                                <label class="form-label small fw-bold">Số Lượng Thực Cấp</label>
+                                                <input type="number" step="0.01" id="cp-lit"
+                                                    class="form-control fw-bold" required placeholder="0.0">
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label small">Đơn Giá (VNĐ)</label>
-                                                <input type="number" id="cp-gia" class="form-control" value="21000">
+                                                <label class="form-label small fw-bold">Đơn Giá Thực Tế (VNĐ)</label>
+                                                <input type="number" id="cp-gia" class="form-control" required
+                                                    placeholder="Giá tại thời điểm cấp">
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label small">Thành Tiền</label>
+                                                <label class="form-label small fw-bold">Thành Tiền</label>
                                                 <input type="text" id="cp-thanhtien"
-                                                    class="form-control fw-bold text-success bg-white" readonly>
+                                                    class="form-control bg-light text-end fw-bold text-danger fs-5"
+                                                    readonly>
                                             </div>
                                         </div>
+
                                         <div class="text-end mt-4 pt-3 border-top">
-                                            <button type="reset" class="btn btn-secondary me-2">Làm Mới</button>
-                                            <button type="submit" class="btn btn-military px-4"><i
-                                                    class="fas fa-check-circle me-2"></i> HOÀN TẤT LỆNH</button>
+                                            <button type="reset" class="btn btn-secondary px-4 me-2">Làm lại</button>
+                                            <button type="submit" class="btn btn-military px-5"><i
+                                                    class="fas fa-save me-2"></i> LƯU LỆNH CẤP PHÁT</button>
                                         </div>
                                     </form>
                                 </div>
@@ -234,22 +320,24 @@
 
                 <!-- TAB 3: HỒ SƠ XE -->
                 <div id="tab-hoso-xe" class="content-tab d-none fade-in">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="text-military fw-bold m-0">DANH MỤC PHƯƠNG TIỆN</h5>
-                        <button class="btn btn-success btn-sm" onclick="openModalXe()"><i class="fas fa-plus me-1"></i>
-                            Thêm Mới</button>
+                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+                        <h5 class="text-military fw-bold text-uppercase m-0"><i class="fas fa-truck-moving me-2"></i>
+                            Quản Lý Phương Tiện & Trang Bị</h5>
+                        <button class="btn btn-military btn-sm" onclick="openModalXe()"><i class="fas fa-plus me-1"></i>
+                            Thêm Phương Tiện</button>
                     </div>
-                    <div class="card shadow-sm border-0">
+
+                    <div class="card border-0 shadow-sm">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
-                                <thead class="table-light text-uppercase small">
+                                <thead class="table-light">
                                     <tr>
-                                        <th>Biển Số</th>
+                                        <th>Biển Kiểm Soát</th>
+                                        <th>Loại Hình</th>
                                         <th>Nhãn Hiệu</th>
-                                        <th>Loại NL</th>
+                                        <th>Nhiên Liệu</th>
                                         <th>Định Mức</th>
                                         <th>Trạng Thái</th>
-                                        <th>ODO Hiện Tại</th>
                                         <th class="text-end">Thao Tác</th>
                                     </tr>
                                 </thead>
@@ -259,16 +347,63 @@
                     </div>
                 </div>
 
-                <!-- TAB 4: HỒ SƠ TÀI XẾ -->
+                <!-- TAB 4: HỒ SƠ TÀI XẾ (CARD DESIGN) -->
                 <div id="tab-hoso-taixe" class="content-tab d-none fade-in">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="text-military fw-bold m-0">DANH SÁCH QUÂN NHÂN LÁI XE</h5>
-                        <button class="btn btn-success btn-sm" onclick="openModalTaiXe()"><i
-                                class="fas fa-plus me-1"></i> Thêm Hồ Sơ</button>
+                    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
+                        <h5 class="text-military fw-bold text-uppercase m-0"><i class="fas fa-users me-2"></i> Hồ Sơ
+                            Quân Nhân Lái Xe</h5>
+                        <button class="btn btn-military btn-sm" onclick="openModalTaiXe()"><i
+                                class="fas fa-user-plus me-1"></i> Thêm Hồ Sơ</button>
                     </div>
 
-                    <div class="row g-3" id="grid-taixe">
-                        <!-- Driver Cards Injected Here -->
+                    <div class="row g-4" id="grid-taixe">
+                        <!-- JS injected cards -->
+                    </div>
+                </div>
+
+                <!-- TAB 5: DANH MỤC (V3.0) -->
+                <div id="tab-danhmuc" class="content-tab d-none fade-in">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <h5 class="text-military fw-bold text-uppercase mb-3"><i class="fas fa-list-alt me-2"></i>
+                                Danh Mục Loại Nhiên Liệu & Vật Tư</h5>
+                            <div class="card shadow-sm border-0 mb-4">
+                                <div class="card-body bg-light">
+                                    <form id="form-nhienlieu" class="row g-3 align-items-end">
+                                        <div class="col-md-5">
+                                            <label class="small fw-bold">Tên Loại (VD: Xăng A95)</label>
+                                            <input type="text" id="nl-ten" class="form-control" required>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="small fw-bold">Đơn Vị Tính</label>
+                                            <select id="nl-donvi" class="form-select">
+                                                <option value="Lít">Lít</option>
+                                                <option value="Can">Can</option>
+                                                <option value="Kg">Kg</option>
+                                                <option value="Hộp">Hộp</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <button type="submit" class="btn btn-military w-100"><i
+                                                    class="fas fa-plus-circle me-1"></i> Thêm Mới</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card shadow-sm border-0">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên Loại Nhiên Liệu / Vật Tư</th>
+                                            <th>Đơn Vị Tính</th>
+                                            <th class="text-end">Xóa</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-nhienlieu"></tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -276,35 +411,55 @@
         </div>
     </div>
 
-    <!-- MODAL XE -->
-    <div class="modal fade" id="modalXe" tabindex="-1" data-bs-backdrop="static">
+    <!-- MODAL XE (CẬP NHẬT TRƯỜNG DỮ LIỆU) -->
+    <div class="modal fade" id="modalXe" data-bs-backdrop="static" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header bg-military text-white py-2">
-                    <h6 class="modal-title fw-bold text-uppercase">Thông Tin Kỹ Thuật Phương Tiện</h6>
+                <div class="modal-header bg-military text-white">
+                    <h6 class="modal-title fw-bold text-uppercase">THÔNG TIN PHƯƠNG TIỆN / TRANG BỊ</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="form-xe">
                         <input type="hidden" id="xe-id">
                         <div class="row g-3">
+                            <div class="col-12 mb-2">
+                                <label class="form-label small fw-bold">Phân Loại Đối Tượng Quản Lý:</label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="xe_type" id="type_xe" value="XE" checked
+                                        onchange="toggleXeFields()">
+                                    <label class="btn btn-outline-success fw-bold" for="type_xe"><i
+                                            class="fas fa-car me-2"></i>XE Ô TÔ / VẬN TẢI</label>
+
+                                    <input type="radio" class="btn-check" name="xe_type" id="type_may" value="MAY_PHAT"
+                                        onchange="toggleXeFields()">
+                                    <label class="btn btn-outline-dark fw-bold" for="type_may"><i
+                                            class="fas fa-charging-station me-2"></i>MÁY PHÁT / MÁY NỔ</label>
+                                </div>
+                            </div>
+
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">Biển Số Xe</label>
+                                <label class="form-label small fw-bold">Biển Số / Mã Hiệu</label>
                                 <input type="text" id="xe-bienso" class="form-control text-uppercase fw-bold" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Nhãn Hiệu (Model)</label>
                                 <input type="text" id="xe-hieu" class="form-control" required>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label small">Loại Nhiên Liệu</label>
-                                <select id="xe-loainl" class="form-select">
-                                    <option value="Xăng">Xăng</option>
-                                    <option value="Dầu">Dầu Diesel</option>
-                                </select>
+                            <div class="col-md-6">
+                                <label class="form-label small">Số Khung</label>
+                                <input type="text" id="xe-sokhung" class="form-control text-uppercase font-monospace">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Số Máy</label>
+                                <input type="text" id="xe-somay" class="form-control text-uppercase font-monospace">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label small">Định Mức (Lít/100km)</label>
+                                <label class="form-label small fw-bold">Loại NL Mặc Định</label>
+                                <select id="xe-loainl" class="form-select"></select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Định Mức (L/100Km hoặc L/Giờ)</label>
                                 <input type="number" step="0.1" id="xe-dinhmuc" class="form-control">
                             </div>
                             <div class="col-md-4">
@@ -312,30 +467,22 @@
                                 <input type="number" id="xe-namsx" class="form-control">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small">Số Khung</label>
-                                <input type="text" id="xe-sokhung" class="form-control font-monospace text-uppercase">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label small">Số Máy</label>
-                                <input type="text" id="xe-somay" class="form-control font-monospace text-uppercase">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label small fw-bold">ODO Khởi Điểm (Km)</label>
+                                <label class="form-label small fw-bold" id="lbl-odo">ODO Khởi Điểm (Km)</label>
                                 <input type="number" id="xe-odo" class="form-control" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">Trạng Thái</label>
+                                <label class="form-label small fw-bold">Trạng Thái Hiện Tại</label>
                                 <select id="xe-trangthai" class="form-select">
                                     <option value="Sẵn sàng">Sẵn sàng hoạt động</option>
-                                    <option value="Đang công tác">Đang đi công tác</option>
-                                    <option value="Bảo dưỡng">Đang bảo dưỡng/Sửa chữa</option>
+                                    <option value="Đang công tác">Đang công tác</option>
+                                    <option value="Bảo dưỡng">Bảo dưỡng / Sửa chữa</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="mt-4 pt-2 border-top d-flex justify-content-between">
+                        <div class="mt-4 pt-3 border-top d-flex justify-content-between">
                             <button type="button" class="btn btn-outline-danger btn-sm" id="btn-xoa-xe"
                                 onclick="xoaXe()">Xóa Dữ Liệu</button>
-                            <button type="submit" class="btn btn-primary px-4">Lưu Thông Tin</button>
+                            <button type="submit" class="btn btn-military px-4">Lưu Thông Tin</button>
                         </div>
                     </form>
                 </div>
@@ -343,12 +490,12 @@
         </div>
     </div>
 
-    <!-- MODAL TÀI XẾ -->
-    <div class="modal fade" id="modalTaiXe" tabindex="-1" data-bs-backdrop="static">
+    <!-- MODAL TÀI XẾ (V2.0 Pro) -->
+    <div class="modal fade" id="modalTaiXe" data-bs-backdrop="static" tabindex="-1">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
-                <div class="modal-header bg-military text-white py-2">
-                    <h6 class="modal-title fw-bold text-uppercase">Hồ Sơ Quân Nhân Lái Xe</h6>
+                <div class="modal-header bg-military text-white">
+                    <h6 class="modal-title fw-bold text-uppercase">HỒ SƠ QUÂN NHÂN LÁI XE</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -357,25 +504,28 @@
                         <input type="hidden" id="tx-anh-path">
 
                         <div class="row">
-                            <!-- Ảnh chân dung -->
+                            <!-- Cột Trái: Ảnh -->
                             <div class="col-md-3 text-center border-end">
-                                <div class="mb-3">
-                                    <img id="tx-preview" src="assets/avatar-placeholder.png" class="img-thumbnail"
-                                        style="width: 180px; height: 220px; object-fit: cover;">
+                                <div class="card mb-3 shadow-sm">
+                                    <img id="tx-preview" src="assets/avatar-placeholder.png" class="card-img-top"
+                                        style="height: 250px; object-fit: cover;">
+                                    <div class="card-body p-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary w-100"
+                                            onclick="chonAnh()">
+                                            <i class="fas fa-camera me-1"></i> Chọn Ảnh
+                                        </button>
+                                    </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-primary w-100" onclick="chonAnh()">
-                                    <i class="fas fa-camera me-1"></i> Chọn Ảnh Thẻ
-                                </button>
-                                <div class="small text-muted mt-2 fst-italic">Ảnh thẻ 3x4 hoặc 4x6</div>
                             </div>
 
-                            <!-- Thông tin chi tiết -->
+                            <!-- Cột Phải: Thông tin -->
                             <div class="col-md-9 ps-4">
-                                <div class="row g-3">
-                                    <h6 class="text-military fw-bold border-bottom pb-1 mb-0">I. THÔNG TIN CÁ NHÂN</h6>
+                                <h6 class="text-military fw-bold border-bottom pb-2 mb-3">I. THÔNG TIN CÁ NHÂN</h6>
+                                <div class="row g-3 mb-4">
                                     <div class="col-md-6">
                                         <label class="form-label small fw-bold">Họ và Tên</label>
-                                        <input type="text" id="tx-ten" class="form-control text-uppercase" required>
+                                        <input type="text" id="tx-ten" class="form-control text-uppercase fw-bold"
+                                            required>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label small">Ngày Sinh</label>
@@ -387,26 +537,28 @@
                                             placeholder="Xã, Huyện, Tỉnh">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label small">Nơi Ở Hiện Nay (Trú quán)</label>
+                                        <label class="form-label small">Trú Quán (Hiện nay)</label>
                                         <input type="text" id="tx-truquan" class="form-control">
                                     </div>
+                                </div>
 
-                                    <h6 class="text-military fw-bold border-bottom pb-1 mt-3 mb-0">II. THÔNG TIN CÔNG
-                                        TÁC</h6>
+                                <h6 class="text-military fw-bold border-bottom pb-2 mb-3">II. THÔNG TIN CÔNG TÁC</h6>
+                                <div class="row g-3">
                                     <div class="col-md-4">
-                                        <label class="form-label small fw-bold">Số Hiệu Quân Nhân</label>
-                                        <input type="text" id="tx-sohieu" class="form-control">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small fw-bold">Cấp Bậc</label>
-                                        <input type="text" id="tx-capbac" class="form-control"
-                                            placeholder="VD: Trung úy">
+                                        <label class="form-label small fw-bold">Cấp Bậc / Quân Hàm</label>
+                                        <input type="text" id="tx-capbac" class="form-control fw-bold"
+                                            placeholder="VD: Đại úy">
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label small fw-bold">Chức Vụ</label>
                                         <input type="text" id="tx-chucvu" class="form-control" placeholder="VD: Lái xe">
                                     </div>
-                                    <div class="col-12">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold">Số Hiệu Quân Nhân</label>
+                                        <input type="text" id="tx-sohieu"
+                                            class="form-control text-uppercase font-monospace">
+                                    </div>
+                                    <div class="col-md-12">
                                         <label class="form-label small fw-bold">Đơn Vị Quản Lý</label>
                                         <input type="text" id="tx-donvi" class="form-control">
                                     </div>
@@ -414,10 +566,10 @@
                             </div>
                         </div>
 
-                        <div class="mt-4 pt-2 border-top d-flex justify-content-between">
+                        <div class="mt-4 pt-3 border-top d-flex justify-content-between">
                             <button type="button" class="btn btn-outline-danger btn-sm" id="btn-xoa-tx"
                                 onclick="xoaTaiXe()">Xóa Hồ Sơ</button>
-                            <button type="submit" class="btn btn-primary px-4">Lưu Hồ Sơ</button>
+                            <button type="submit" class="btn btn-military px-4">Lưu Hồ Sơ</button>
                         </div>
                     </form>
                 </div>
@@ -429,18 +581,19 @@
     <div class="modal fade" id="modalHistory" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-secondary text-white py-2">
                     <h6 class="modal-title fw-bold">LỊCH SỬ HOẠT ĐỘNG CHI TIẾT</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-0">
-                    <table class="table table-striped table-sm mb-0 small">
-                        <thead>
+                    <table class="table table-striped mb-0 small">
+                        <thead class="table-light">
                             <tr>
                                 <th>Thời Gian</th>
-                                <th>Đối Tượng</th>
-                                <th>Km Vận Hành</th>
-                                <th>Nhiên Liệu (Lít)</th>
+                                <th>Nguồn Cấp</th>
+                                <th>Hoạt Động</th>
+                                <th>Số Lượng</th>
+                                <th>Nhiên Liệu</th>
                             </tr>
                         </thead>
                         <tbody id="table-history-content"></tbody>
@@ -450,8 +603,8 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="renderer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

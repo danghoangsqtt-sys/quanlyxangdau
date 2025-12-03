@@ -7,9 +7,10 @@ let mainWindow;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 1366,
-        height: 768,
-        title: "HỆ THỐNG QUẢN LÝ VẬN TẢI & XĂNG DẦU - VER 2.0 PRO",
+        width: 1400,
+        height: 850,
+        title: "PHẦN MỀM QUẢN LÝ VẬN TẢI CHIẾN LƯỢC - VER 3.0",
+        icon: path.join(__dirname, 'assets/icon.png'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -17,7 +18,6 @@ function createWindow() {
     });
 
     mainWindow.loadFile('index.html');
-    // mainWindow.webContents.openDevTools(); // Bật để debug nếu cần
     mainWindow.setMenuBarVisibility(false);
 }
 
@@ -29,7 +29,7 @@ app.on('window-all-closed', () => {
 
 // --- IPC HANDLERS ---
 
-// 1. Hệ thống & Auth
+// 1. Hệ thống & Xác thực
 ipcMain.handle('hethong:dangNhap', (e, u, p) => {
     try {
         const user = db.dangNhap(u, p);
@@ -53,7 +53,7 @@ ipcMain.handle('xe:xoa', (e, id) => {
 });
 ipcMain.handle('xe:lichSu', (e, id) => db.layLichSuXe(id));
 
-// 3. Nghiệp vụ Tài xế
+// 3. Nghiệp vụ Tài xế (Quân sự)
 ipcMain.handle('taixe:layDanhSach', () => db.layDanhSachTaiXe());
 ipcMain.handle('taixe:them', (e, data) => {
     try { db.themTaiXe(data); return { success: true }; }
@@ -68,20 +68,29 @@ ipcMain.handle('taixe:xoa', (e, id) => {
     catch (err) { return { success: false, error: err.message }; }
 });
 ipcMain.handle('taixe:lichSu', (e, id) => db.layLichSuTaiXe(id));
-
-// Xử lý chọn ảnh đại diện
 ipcMain.handle('taixe:chonAnh', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
         properties: ['openFile'],
         filters: [{ name: 'Hình ảnh', extensions: ['jpg', 'png', 'jpeg'] }]
     });
     if (!canceled && filePaths.length > 0) {
-        return filePaths[0]; // Trả về đường dẫn tuyệt đối của file
+        return filePaths[0];
     }
     return null;
 });
 
-// 4. Cấp phát & Báo cáo
+// 4. Nghiệp vụ Nhiên Liệu (Master Data V3)
+ipcMain.handle('nhienlieu:layDanhSach', () => db.layDanhSachNhienLieu());
+ipcMain.handle('nhienlieu:them', (e, data) => {
+    try { db.themNhienLieu(data); return { success: true }; }
+    catch (err) { return { success: false, error: err.message }; }
+});
+ipcMain.handle('nhienlieu:xoa', (e, id) => {
+    try { db.xoaNhienLieu(id); return { success: true }; }
+    catch (err) { return { success: false, error: err.message }; }
+});
+
+// 5. Cấp phát & Báo cáo
 ipcMain.handle('nghiepvu:layDashboard', () => {
     return {
         thongKe: db.layThongKeDashboard(),

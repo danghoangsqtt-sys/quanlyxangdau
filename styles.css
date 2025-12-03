@@ -1,84 +1,167 @@
-/* FONT CHỮ CHUNG */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f0f2f5;
-    font-size: 0.95rem;
+/* FONT & RESET */
+:root {
+    --military-green: #0b6e4f;
+    --military-dark: #074a35;
+    --military-light: #e8f5e9;
+    --text-primary: #1c2e26;
+    --bg-gray: #f4f6f5;
 }
 
-/* PALETTE MÀU QUÂN SỰ / CÔNG QUYỀN */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-gray);
+    font-size: 0.9rem;
+    color: #333;
+}
+
+/* MÀU SẮC CHỦ ĐẠO */
 .bg-military {
-    background-color: #4b5320 !important;
-    /* Olive Drab */
+    background-color: var(--military-green) !important;
     color: white;
 }
 
-.bg-military-dark {
-    background-color: #2F3512 !important;
-}
-
 .text-military {
-    color: #4b5320;
+    color: var(--military-green) !important;
 }
 
-/* SIDEBAR */
+.btn-military {
+    background-color: var(--military-green);
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-military:hover {
+    background-color: var(--military-dark);
+    color: #ffd700;
+}
+
+/* SIDEBAR DESIGN */
 .sidebar {
-    background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(180deg, var(--military-dark) 0%, #032b1e 100%);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
+    color: #aeb6bf;
 }
 
 .sidebar .nav-link {
-    color: #aeb6bf;
-    border-radius: 4px;
-    margin-bottom: 4px;
+    color: #cfd8dc;
+    border-radius: 6px;
+    margin-bottom: 5px;
+    padding: 12px 15px;
+    font-weight: 500;
     transition: all 0.2s;
+    border-left: 4px solid transparent;
 }
 
-.sidebar .nav-link:hover,
+.sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: white;
+}
+
 .sidebar .nav-link.active {
-    background-color: #4b5320;
+    background-color: rgba(11, 110, 79, 0.4);
     color: #ffd700;
-    /* Vàng kim loại */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    /* Vàng kim */
+    border-left-color: #ffd700;
+    font-weight: 700;
 }
 
-.w-20 {
-    width: 20px;
-    text-align: center;
+.sidebar-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
 }
 
-/* DASHBOARD CARDS */
+/* DASHBOARD STATS */
 .stat-card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     transition: transform 0.2s;
 }
 
 .stat-card:hover {
     transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* TABLES */
-.table thead th {
-    background-color: #4b5320;
-    color: white;
-    font-weight: 600;
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
 }
 
-/* DRIVER CARD */
+/* DRIVER CARD (STYLE QUÂN SỰ) */
 .driver-card {
-    border-left: 4px solid #4b5320 !important;
-    transition: box-shadow 0.2s;
+    border: 1px solid #dcdcdc;
+    border-top: 4px solid var(--military-green);
+    background-color: white;
+    transition: all 0.2s;
 }
 
 .driver-card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 5px 15px rgba(11, 110, 79, 0.15);
 }
 
-/* LOGIN */
-.login-card {
-    width: 400px;
-    border-top: 5px solid #4b5320;
+.driver-img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    border-bottom: 1px solid #eee;
 }
 
-/* ANIMATION */
+.rank-badge {
+    background-color: #b71c1c;
+    /* Đỏ quân hàm */
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+/* TABLE STYLES */
+.table thead th {
+    background-color: var(--military-green);
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    border: none;
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--military-light);
+}
+
+/* FORM ELEMENTS */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--military-green);
+    box-shadow: 0 0 0 0.2rem rgba(11, 110, 79, 0.25);
+}
+
+.badge-custom {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+/* LOGIN SCREEN */
+.login-bg {
+    background: linear-gradient(135deg, var(--military-dark) 0%, #000 100%);
+}
+
+.login-panel {
+    border-top: 5px solid #ffd700;
+    /* Vàng kim */
+}
+
+/* UTILS */
 .fade-in {
     animation: fadeIn 0.4s ease-out;
 }
@@ -95,16 +178,15 @@ body {
     }
 }
 
-/* SCROLLBAR */
 ::-webkit-scrollbar {
     width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #e9ecef;
+    background: #f1f1f1;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #4b5320;
+    background: var(--military-green);
     border-radius: 4px;
 }
