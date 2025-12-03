@@ -2,14 +2,15 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const db = require('./database');
+const fs = require('fs');
 
 let mainWindow;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1400,
-        height: 850,
-        title: "PHẦN MỀM QUẢN LÝ VẬN TẢI CHIẾN LƯỢC - VER 3.0",
+        height: 900,
+        title: "HỆ THỐNG QUẢN LÝ XĂNG - DẦU SQTT",
         icon: path.join(__dirname, 'assets/icon.png'),
         webPreferences: {
             nodeIntegration: true,
@@ -29,7 +30,7 @@ app.on('window-all-closed', () => {
 
 // --- IPC HANDLERS ---
 
-// 1. Hệ thống & Xác thực
+// 1. Hệ thống
 ipcMain.handle('hethong:dangNhap', (e, u, p) => {
     try {
         const user = db.dangNhap(u, p);
@@ -37,7 +38,7 @@ ipcMain.handle('hethong:dangNhap', (e, u, p) => {
     } catch (err) { return { success: false, error: err.message }; }
 });
 
-// 2. Nghiệp vụ Xe
+// 2. Xe
 ipcMain.handle('xe:layDanhSach', () => db.layDanhSachXe());
 ipcMain.handle('xe:them', (e, data) => {
     try { db.themXe(data); return { success: true }; }
@@ -53,7 +54,7 @@ ipcMain.handle('xe:xoa', (e, id) => {
 });
 ipcMain.handle('xe:lichSu', (e, id) => db.layLichSuXe(id));
 
-// 3. Nghiệp vụ Tài xế (Quân sự)
+// 3. Tài xế
 ipcMain.handle('taixe:layDanhSach', () => db.layDanhSachTaiXe());
 ipcMain.handle('taixe:them', (e, data) => {
     try { db.themTaiXe(data); return { success: true }; }
@@ -79,7 +80,7 @@ ipcMain.handle('taixe:chonAnh', async () => {
     return null;
 });
 
-// 4. Nghiệp vụ Nhiên Liệu (Master Data V3)
+// 4. Nhiên liệu & Nhiệm vụ (V5.0)
 ipcMain.handle('nhienlieu:layDanhSach', () => db.layDanhSachNhienLieu());
 ipcMain.handle('nhienlieu:them', (e, data) => {
     try { db.themNhienLieu(data); return { success: true }; }
@@ -90,12 +91,44 @@ ipcMain.handle('nhienlieu:xoa', (e, id) => {
     catch (err) { return { success: false, error: err.message }; }
 });
 
+ipcMain.handle('nhiemvu:layDanhSach', () => db.layDanhSachNhiemVu());
+ipcMain.handle('nhiemvu:them', (e, name) => {
+    try { db.themNhiemVu(name); return { success: true }; }
+    catch (err) { return { success: false, error: err.message }; }
+});
+ipcMain.handle('nhiemvu:xoa', (e, id) => {
+    try { db.xoaNhiemVu(id); return { success: true }; }
+    catch (err) { return { success: false, error: err.message }; }
+});
+
 // 5. Cấp phát & Báo cáo
-ipcMain.handle('nghiepvu:layDashboard', () => {
-    return {
-        thongKe: db.layThongKeDashboard(),
-        nhatKy: db.layNhatKyCapPhat()
-    };
+ipcMain.handle('nghiepvu:layDashboard', () => db.layThongKeDashboard());
+ipcMain.handle('nghiepvu:layBaoCao', (e, filter) => db.layBaoCaoTuyChinh(filter));
+ipcMain.handle('hethong:xuatBaoCao', async (e, filter) => {
+    try {
+        const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+            title: 'Xuất Báo Cáo CSV',
+            defaultPath: `BaoCao_XangDau_${new Date().toISOString().slice(0, 10)}.csv`,
+            filters: [{ name: 'CSV File', extensions: ['csv'] }]
+        });
+
+        if (canceled || !filePath) return { success: false };
+
+        const data = db.layBaoCaoTuyChinh(filter);
+
+        let csvContent = "\uFEFF";
+        csvContent += "Thời Gian,Số Phiếu,Số Lệnh,Biển Số,Nhiệm Vụ,Điểm Đến,Số Lượng,Thành Tiền,ODO Cũ,ODO Mới,Quãng Đường\n";
+
+        data.forEach(row => {
+            csvContent += `"${row.ngay_gio}","${row.so_phieu || ''}","${row.so_lenh || ''}","${row.bien_so}","${row.ten_nhiem_vu || ''}","${row.diem_den || ''}","${row.so_luong}","${row.thanh_tien}","${row.odo_cu}","${row.odo_moi}","${row.quang_duong}"\n`;
+        });
+
+        fs.writeFileSync(filePath, csvContent, 'utf-8');
+        return { success: true };
+
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
 });
 
 ipcMain.handle('nghiepvu:capPhat', (e, data) => {

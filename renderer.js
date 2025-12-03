@@ -6,6 +6,8 @@ let currentUser = null;
 let vehicleCache = [];
 let driverCache = [];
 let fuelTypesCache = [];
+let missionsCache = [];
+let departmentsCache = [];
 
 // --- NAVIGATION ---
 window.switchTab = (tabId) => {
@@ -13,15 +15,17 @@ window.switchTab = (tabId) => {
     document.getElementById(tabId).classList.remove('d-none');
 
     document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-    // Highlight current nav
     const activeNav = Array.from(document.querySelectorAll('.nav-link')).find(el => el.getAttribute('onclick').includes(tabId));
     if (activeNav) activeNav.classList.add('active');
 
-    if (tabId === 'tab-tongquan') loadDashboard();
+    if (tabId === 'tab-tongquan') {
+        loadDashboard();
+        initReportFilter();
+    }
     if (tabId === 'tab-capphat') setupCapPhatForm();
     if (tabId === 'tab-hoso-xe') renderVehicles();
     if (tabId === 'tab-hoso-taixe') renderDrivers();
-    if (tabId === 'tab-danhmuc') renderFuelTypes();
+    if (tabId === 'tab-danhmuc') renderMasterData();
 };
 
 // --- AUTH ---
@@ -37,8 +41,10 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         document.getElementById('dashboard-section').classList.remove('d-none');
         document.getElementById('current-user-name').innerText = currentUser.fullname;
 
-        loadAllData();
-        loadDashboard();
+        loadAllData().then(() => {
+            loadDashboard();
+            initReportFilter();
+        });
     } else {
         document.getElementById('login-error').classList.remove('d-none');
     }
@@ -51,51 +57,125 @@ async function loadAllData() {
     vehicleCache = await ipcRenderer.invoke('xe:layDanhSach');
     driverCache = await ipcRenderer.invoke('taixe:layDanhSach');
     fuelTypesCache = await ipcRenderer.invoke('nhienlieu:layDanhSach');
+    missionsCache = await ipcRenderer.invoke('nhiemvu:layDanhSach');
+    departmentsCache = await ipcRenderer.invoke('coquan:layDanhSach');
 }
 
-// --- MODULE: DASHBOARD ---
-async function loadDashboard() {
-    const data = await ipcRenderer.invoke('nghiepvu:layDashboard');
-    const { thongKe, nhatKy } = data;
+// --- DASHBOARD & REPORT (V5.0) ---
+function initReportFilter() {
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    document.getElementById('tk-lit').innerText = thongKe.tongLuong;
-    document.getElementById('tk-tien').innerText = new Intl.NumberFormat('vi-VN').format(thongKe.tongTien);
-    document.getElementById('tk-xe').innerText = thongKe.xeHoatDong;
-    document.getElementById('tk-km').innerText = new Intl.NumberFormat('vi-VN').format(thongKe.tongKm);
+    if (!document.getElementById('filter-start').value) {
+        document.getElementById('filter-start').value = startOfMonth.toISOString().slice(0, 10);
+        document.getElementById('filter-end').value = today.toISOString().slice(0, 10);
+    }
+
+    const filterXe = document.getElementById('filter-xe');
+    if (filterXe.options.length === 0) {
+        filterXe.innerHTML = '<option value="all">-- Tất cả xe --</option>' +
+            vehicleCache.map(v => `<option value="${v.id}">${v.bien_so}</option>`).join('');
+    }
+    loadReportData();
+}
+
+window.loadReportData = async () => {
+    const filter = {
+        startDate: document.getElementById('filter-start').value,
+        endDate: document.getElementById('filter-end').value,
+        vehicleId: document.getElementById('filter-xe').value,
+        keyword: document.getElementById('filter-keyword').value
+    };
+
+    const logs = await ipcRenderer.invoke('nghiepvu:layBaoCao', filter);
 
     const tbody = document.getElementById('table-logs');
-    tbody.innerHTML = nhatKy.map(log => `
+    tbody.innerHTML = logs.map(log => {
+        // Display split logic
+        let qtyDisplay = '';
+        if (log.so_lit_cap > 0) qtyDisplay += `<div class="text-success"><span class="fw-bold">${log.so_lit_cap}</span> (Kho)</div>`;
+        if (log.so_lit_mua > 0) qtyDisplay += `<div class="text-warning text-dark"><span class="fw-bold">${log.so_lit_mua}</span> (Mua)</div>`;
+        if (!qtyDisplay) qtyDisplay = `<div class="fw-bold">${log.so_luong}</div>`;
+
+        return `
         <tr>
-            <td>${log.ngay_gio.replace('T', ' ').slice(0, 16)}</td>
             <td>
-                ${log.nguon_cap === 'KHO' ? '<span class="badge bg-success">KHO</span>' : '<span class="badge bg-danger">MUA NGOÀI</span>'}
-            </td>
-            <td class="fw-bold">${log.bien_so}</td>
-            <td>
-                <div class="small fw-bold">${log.cap_bac}</div>
-                <div class="small text-muted">${log.ten_tai_xe}</div>
+                <div>${log.ngay_gio.slice(0, 10)}</div>
+                <small class="text-muted">${log.ngay_gio.slice(11, 16)}</small>
             </td>
             <td>
-                <div class="small">${log.ten_loai || '-'}</div>
-                <div class="small text-muted fst-italic">${log.muc_dich === 'MAY_PHAT' ? 'Chạy máy phát' : 'Vận tải'}</div>
+                <div class="fw-bold text-danger">${log.so_phieu || '--'}</div>
+                <div class="small fst-italic">Lệnh: ${log.so_lenh || '--'}</div>
             </td>
-            <td class="text-primary fw-bold">${log.so_luong} ${log.don_vi}</td>
+            <td>
+                <div class="fw-bold">${log.bien_so}</div>
+                <div class="small">${log.loai_phuong_tien}</div>
+            </td>
+            <td>
+                <div>${log.ten_co_quan || '-'}</div>
+            </td>
+            <td>
+                <div class="text-truncate" style="max-width: 150px;">${log.diem_den || ''}</div>
+                <div class="small text-muted text-truncate" style="max-width: 150px;">${log.noi_dung || ''}</div>
+            </td>
+            <td>${qtyDisplay}</td>
             <td class="fw-bold text-dark">${new Intl.NumberFormat('vi-VN').format(log.thanh_tien)}</td>
         </tr>
-    `).join('');
+    `}).join('');
+};
+
+window.exportReportData = async () => {
+    const filter = {
+        startDate: document.getElementById('filter-start').value,
+        endDate: document.getElementById('filter-end').value,
+        vehicleId: document.getElementById('filter-xe').value,
+        keyword: document.getElementById('filter-keyword').value
+    };
+
+    const res = await ipcRenderer.invoke('hethong:xuatBaoCao', filter);
+    if (res.success) alert("Xuất báo cáo thành công!");
+    else alert("Lỗi xuất báo cáo: " + res.error);
+};
+
+async function loadDashboard() {
+    const data = await ipcRenderer.invoke('nghiepvu:layDashboard');
+    document.getElementById('tk-lit').innerText = data.tongLuong;
+    document.getElementById('tk-tien').innerText = new Intl.NumberFormat('vi-VN').format(data.tongTien);
+    document.getElementById('tk-xe').innerText = data.xeHoatDong;
+    document.getElementById('tk-km').innerText = new Intl.NumberFormat('vi-VN').format(data.tongKm);
 }
 
-// --- MODULE: DANH MỤC (V3.0) ---
-function renderFuelTypes() {
+// --- DANH MỤC (V5.0: 3 Columns) ---
+function renderMasterData() {
+    // 1. Render Fuel
     ipcRenderer.invoke('nhienlieu:layDanhSach').then(list => {
         fuelTypesCache = list;
         document.getElementById('table-nhienlieu').innerHTML = list.map(f => `
             <tr>
                 <td class="fw-bold text-military">${f.ten_loai}</td>
-                <td><span class="badge bg-light text-dark border">${f.don_vi}</span></td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-outline-danger" onclick="xoaNhienLieu(${f.id})"><i class="fas fa-trash"></i></button>
-                </td>
+                <td><button class="btn btn-sm btn-outline-danger py-0 border-0" onclick="xoaNhienLieu(${f.id})"><i class="fas fa-times"></i></button></td>
+            </tr>
+        `).join('');
+    });
+
+    // 2. Render Mission
+    ipcRenderer.invoke('nhiemvu:layDanhSach').then(list => {
+        missionsCache = list;
+        document.getElementById('table-nhiemvu').innerHTML = list.map(m => `
+            <tr>
+                <td>${m.ten_nhiem_vu}</td>
+                <td class="text-end"><button class="btn btn-sm btn-outline-danger py-0 border-0" onclick="xoaNhiemVu(${m.id})"><i class="fas fa-times"></i></button></td>
+            </tr>
+        `).join('');
+    });
+
+    // 3. Render Department
+    ipcRenderer.invoke('coquan:layDanhSach').then(list => {
+        departmentsCache = list;
+        document.getElementById('table-coquan').innerHTML = list.map(m => `
+            <tr>
+                <td>${m.ten_co_quan}</td>
+                <td class="text-end"><button class="btn btn-sm btn-outline-danger py-0 border-0" onclick="xoaCoQuan(${m.id})"><i class="fas fa-times"></i></button></td>
             </tr>
         `).join('');
     });
@@ -103,168 +183,187 @@ function renderFuelTypes() {
 
 document.getElementById('form-nhienlieu').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const data = {
+    await ipcRenderer.invoke('nhienlieu:them', {
         ten_loai: document.getElementById('nl-ten').value,
         don_vi: document.getElementById('nl-donvi').value,
+        nhom_nl: document.getElementById('nl-nhom').value,
         ghi_chu: ''
-    };
-    await ipcRenderer.invoke('nhienlieu:them', data);
+    });
     document.getElementById('nl-ten').value = '';
-    renderFuelTypes();
+    renderMasterData();
 });
 
-window.xoaNhienLieu = async (id) => {
-    if (confirm('Bạn có chắc chắn muốn xóa danh mục này?')) {
-        await ipcRenderer.invoke('nhienlieu:xoa', id);
-        renderFuelTypes();
-    }
-};
+document.getElementById('form-nhiemvu').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await ipcRenderer.invoke('nhiemvu:them', document.getElementById('nv-ten').value);
+    document.getElementById('nv-ten').value = '';
+    renderMasterData();
+});
 
-// --- MODULE: CẤP PHÁT (FORM LOGIC V3) ---
+document.getElementById('form-coquan').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await ipcRenderer.invoke('coquan:them', document.getElementById('cq-ten').value);
+    document.getElementById('cq-ten').value = '';
+    renderMasterData();
+});
+
+window.xoaNhienLieu = async (id) => { if (confirm('Xóa?')) { await ipcRenderer.invoke('nhienlieu:xoa', id); renderMasterData(); } };
+window.xoaNhiemVu = async (id) => { if (confirm('Xóa?')) { await ipcRenderer.invoke('nhiemvu:xoa', id); renderMasterData(); } };
+window.xoaCoQuan = async (id) => { if (confirm('Xóa?')) { await ipcRenderer.invoke('coquan:xoa', id); renderMasterData(); } };
+
+// --- CẤP PHÁT (FORM LOGIC V5.0) ---
 async function setupCapPhatForm() {
     await loadAllData();
 
-    // Default Time
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('cp-ngay').value = now.toISOString().slice(0, 16);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    document.getElementById('cp-ngay-phieu').value = todayStr;
+    document.getElementById('cp-ngay-di').value = todayStr;
+    document.getElementById('cp-ngay-ve').value = todayStr;
+
+    // Default time: Di 07:00, Ve 17:00
+    document.getElementById('cp-gio-di').value = "07:00";
+    document.getElementById('cp-gio-ve').value = "17:00";
 
     // Populate Vehicles
     const xeSelect = document.getElementById('cp-xe');
-    xeSelect.innerHTML = `<option value="">-- Chọn Phương Tiện / Máy Móc --</option>` +
-        vehicleCache.map(v => `<option value="${v.id}" data-type="${v.loai_phuong_tien}" data-odo="${v.odo_hien_tai}" data-nl="${v.loai_nhien_lieu_mac_dinh}" data-dm="${v.dinh_muc}">
-            [${v.loai_phuong_tien === 'MAY_PHAT' ? 'MÁY' : 'XE'}] ${v.bien_so} - ${v.nhan_hieu}
+    xeSelect.innerHTML = `<option value="">-- Chọn Phương Tiện --</option>` +
+        vehicleCache.map(v => `<option value="${v.id}" 
+            data-bienso="${v.bien_so}"
+            data-type="${v.loai_phuong_tien}" 
+            data-odo="${v.odo_hien_tai}" 
+            data-dongco="${v.loai_dong_co}" 
+            data-dm="${v.dinh_muc}">
+            ${v.bien_so} - ${v.nhan_hieu}
         </option>`).join('');
 
     // Populate Drivers
-    const txSelect = document.getElementById('cp-taixe');
-    txSelect.innerHTML = `<option value="">-- Chọn Người Nhận --</option>` +
+    document.getElementById('cp-taixe').innerHTML = `<option value="">-- Chọn Người Lái --</option>` +
         driverCache.map(d => `<option value="${d.id}">${d.cap_bac} ${d.ho_ten}</option>`).join('');
 
-    // Populate Fuel List
-    updateFuelDropdown('cp-loainl');
+    // Populate Missions
+    document.getElementById('cp-nhiemvu').innerHTML = `<option value="">-- Chọn Nhiệm Vụ --</option>` +
+        missionsCache.map(m => `<option value="${m.id}">${m.ten_nhiem_vu}</option>`).join('');
+
+    // Populate Departments
+    document.getElementById('cp-coquan').innerHTML = `<option value="">-- Chọn Cơ Quan --</option>` +
+        departmentsCache.map(d => `<option value="${d.id}">${d.ten_co_quan}</option>`).join('');
+
+    document.getElementById('cp-loainl').innerHTML = '<option value="">-- Chọn Xe Trước --</option>';
 }
 
-function updateFuelDropdown(elementId) {
-    const select = document.getElementById(elementId);
-    select.innerHTML = `<option value="">-- Chọn Loại Nhiên Liệu --</option>` +
-        fuelTypesCache.map(f => `<option value="${f.id}" data-unit="${f.don_vi}">${f.ten_loai}</option>`).join('');
-}
-
-// Logic: Chọn Xe -> Tự điền NL mặc định -> Ẩn/Hiện ODO
+// Logic: Chọn Xe -> Hiển thị Info & Lọc nhiên liệu
 document.getElementById('cp-xe').addEventListener('change', (e) => {
     const opt = e.target.selectedOptions[0];
-    const infoDiv = document.getElementById('cp-info-xe');
-    const odoSection = document.getElementById('section-odo');
+    const fuelSelect = document.getElementById('cp-loainl');
 
     if (opt.value) {
-        const type = opt.getAttribute('data-type');
-        const odo = opt.getAttribute('data-odo');
-        const defNL = opt.getAttribute('data-nl');
+        // V5.0: Fill Readonly Fields
+        document.getElementById('cp-view-bienso').value = opt.getAttribute('data-bienso');
+        document.getElementById('cp-view-loaixe').value = opt.getAttribute('data-type') === 'MAY_PHAT' ? 'MÁY PHÁT' : 'Ô TÔ';
+        document.getElementById('cp-view-dinhmuc').value = opt.getAttribute('data-dm');
 
-        // 1. Fill ODO
+        const odo = parseInt(opt.getAttribute('data-odo')) || 0;
+        const dongCo = opt.getAttribute('data-dongco');
+
         document.getElementById('cp-odo-cu').value = odo;
+        document.getElementById('cp-odo-moi').value = '';
+        document.getElementById('cp-quangduong').value = '';
 
-        // 2. Hide/Show Logic
-        if (type === 'MAY_PHAT') {
-            odoSection.classList.add('d-none');
-            document.getElementById('pur_mayphat').checked = true;
-            infoDiv.innerHTML = `<span class="badge bg-dark">MÁY PHÁT ĐIỆN</span>`;
-        } else {
-            odoSection.classList.remove('d-none');
-            document.getElementById('pur_congtac').checked = true;
-            infoDiv.innerHTML = `<span class="badge bg-primary">XE Ô TÔ</span> Định mức: <b>${opt.getAttribute('data-dm')}</b>`;
-        }
+        // Filter Fuel Logic
+        let allowedGroups = dongCo === 'MAY_XANG' ? ['XANG', 'NHOT'] : ['DAU', 'NHOT'];
+        const filteredFuels = fuelTypesCache.filter(f => allowedGroups.includes(f.nhom_nl));
 
-        // 3. Auto-select Fuel
-        if (defNL) {
-            const fuelType = fuelTypesCache.find(f => f.ten_loai === defNL);
-            if (fuelType) document.getElementById('cp-loainl').value = fuelType.id;
-            updateUnitDisplay();
-        }
+        fuelSelect.innerHTML = `<option value="">-- Chọn NL --</option>` +
+            filteredFuels.map(f => `<option value="${f.id}" data-unit="${f.don_vi}">${f.ten_loai}</option>`).join('');
+
     } else {
+        // Clear logic
+        document.getElementById('cp-view-bienso').value = '';
+        document.getElementById('cp-view-loaixe').value = '';
+        document.getElementById('cp-view-dinhmuc').value = '0';
         document.getElementById('cp-odo-cu').value = '';
-        infoDiv.innerHTML = '';
-        odoSection.classList.remove('d-none');
+        fuelSelect.innerHTML = '<option value="">-- Chọn Xe Trước --</option>';
     }
     updateCalc();
 });
 
-document.getElementById('cp-loainl').addEventListener('change', updateUnitDisplay);
-
-function updateUnitDisplay() {
-    const opt = document.getElementById('cp-loainl').selectedOptions[0];
-    const txt = opt && opt.value ? opt.getAttribute('data-unit') : '---';
-    document.getElementById('cp-info-unit').innerText = txt;
-}
-
-function updateCalc() {
+// ODO Bi-directional
+document.getElementById('cp-odo-moi').addEventListener('input', (e) => {
     const odoCu = parseInt(document.getElementById('cp-odo-cu').value) || 0;
-    const odoMoi = parseInt(document.getElementById('cp-odo-moi').value) || 0;
-    const soLuong = parseFloat(document.getElementById('cp-lit').value) || 0;
-    const gia = parseFloat(document.getElementById('cp-gia').value) || 0;
+    const odoMoi = parseInt(e.target.value) || 0;
+    if (odoMoi >= odoCu) document.getElementById('cp-quangduong').value = odoMoi - odoCu;
+});
+document.getElementById('cp-quangduong').addEventListener('input', (e) => {
+    const odoCu = parseInt(document.getElementById('cp-odo-cu').value) || 0;
+    const km = parseInt(e.target.value) || 0;
+    if (km >= 0) document.getElementById('cp-odo-moi').value = odoCu + km;
+});
 
-    const isOdoVisible = !document.getElementById('section-odo').classList.contains('d-none');
+// Split Calc Logic
+function updateCalc() {
+    const litCap = parseFloat(document.getElementById('cp-lit-cap').value) || 0;
+    const giaCap = parseFloat(document.getElementById('cp-gia-cap').value) || 0;
 
-    if (isOdoVisible) {
-        const km = odoMoi - odoCu;
-        const kmText = document.getElementById('cp-km-text');
-        if (km > 0) {
-            kmText.innerText = `${km} Km`;
-            kmText.className = "h4 text-success fw-bold mb-0";
-        } else {
-            kmText.innerText = km < 0 ? "Lỗi ODO!" : "0 Km";
-            kmText.className = km < 0 ? "h4 text-danger fw-bold mb-0" : "h4 text-muted fw-bold mb-0";
-        }
-    }
+    const litMua = parseFloat(document.getElementById('cp-lit-mua').value) || 0;
+    const giaMua = parseFloat(document.getElementById('cp-gia-mua').value) || 0;
 
-    const tien = soLuong * gia;
-    document.getElementById('cp-thanhtien').value = new Intl.NumberFormat('vi-VN').format(tien) + ' VNĐ';
+    const total = (litCap * giaCap) + (litMua * giaMua);
+    document.getElementById('cp-thanhtien').value = new Intl.NumberFormat('vi-VN').format(total);
 }
 
-['cp-odo-moi', 'cp-lit', 'cp-gia'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updateCalc);
-});
+['cp-lit-cap', 'cp-gia-cap', 'cp-lit-mua', 'cp-gia-mua'].forEach(id => document.getElementById(id).addEventListener('input', updateCalc));
 
 document.getElementById('form-capphat').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const isOdoVisible = !document.getElementById('section-odo').classList.contains('d-none');
-    const odoMoi = parseInt(document.getElementById('cp-odo-moi').value) || 0;
-    const odoCu = parseInt(document.getElementById('cp-odo-cu').value) || 0;
-
-    if (isOdoVisible && odoMoi < odoCu) {
-        alert("Lỗi: ODO Mới không được nhỏ hơn ODO Cũ!");
-        return;
-    }
-
+    // Gather massive V5.0 data
     const data = {
+        // System / Old logic fields
         xe_id: document.getElementById('cp-xe').value,
         tai_xe_id: document.getElementById('cp-taixe').value,
         loai_nhien_lieu_id: document.getElementById('cp-loainl').value,
-        nguon_cap: document.querySelector('input[name="cp_nguon"]:checked').value,
-        muc_dich: document.querySelector('input[name="cp_mucdich"]:checked').value,
-        ngay_gio: document.getElementById('cp-ngay').value,
-        odo_moi: isOdoVisible ? odoMoi : 0,
-        so_luong: parseFloat(document.getElementById('cp-lit').value),
-        don_gia: parseFloat(document.getElementById('cp-gia').value),
-        nguoi_tao: currentUser.username
+        nguon_cap: 'KHO', // Default
+        muc_dich: 'CONG_TAC', // Default
+        ngay_gio: document.getElementById('cp-ngay-di').value + 'T' + document.getElementById('cp-gio-di').value,
+
+        odo_moi: parseInt(document.getElementById('cp-odo-moi').value) || 0,
+
+        // Split Fuel
+        so_lit_cap: parseFloat(document.getElementById('cp-lit-cap').value) || 0,
+        don_gia: parseFloat(document.getElementById('cp-gia-cap').value) || 0,
+        so_lit_mua: parseFloat(document.getElementById('cp-lit-mua').value) || 0,
+        don_gia_mua: parseFloat(document.getElementById('cp-gia-mua').value) || 0,
+
+        nguoi_tao: currentUser.username,
+
+        // V5.0 NEW FIELDS
+        nhom_c: document.getElementById('cp-nhom-c').value,
+        so_phieu: document.getElementById('cp-so-phieu').value,
+        ngay_phieu: document.getElementById('cp-ngay-phieu').value,
+        so_lenh: document.getElementById('cp-so-lenh').value,
+        ngay_lenh: document.getElementById('cp-ngay-lenh').value,
+        co_quan_id: document.getElementById('cp-coquan').value,
+        noi_dung: document.getElementById('cp-noidung').value,
+        diem_den: document.getElementById('cp-diemden').value,
+        nhiem_vu_id: document.getElementById('cp-nhiemvu').value,
+
+        ngay_di: document.getElementById('cp-ngay-di').value,
+        gio_di: document.getElementById('cp-gio-di').value,
+        ngay_ve: document.getElementById('cp-ngay-ve').value,
+        gio_ve: document.getElementById('cp-gio-ve').value
     };
 
     const res = await ipcRenderer.invoke('nghiepvu:capPhat', data);
     if (res.success) {
-        alert("Đã lưu lệnh cấp phát thành công!");
+        alert("Đã lưu Phiếu Lệnh thành công!");
         document.getElementById('form-capphat').reset();
-        document.getElementById('cp-odo-cu').value = "";
-        document.getElementById('cp-km-text').innerText = "0 Km";
-        document.getElementById('cp-thanhtien').value = "";
         setupCapPhatForm();
     } else {
         alert(res.error);
     }
 });
 
-// --- MODULE: XE ---
+// --- XE & TÀI XẾ (Giữ nguyên logic cũ) ---
 function renderVehicles() {
     loadAllData().then(() => {
         const tbody = document.getElementById('table-xe');
@@ -273,69 +372,47 @@ function renderVehicles() {
                 <td class="fw-bold text-danger">${v.bien_so}</td>
                 <td><span class="badge ${v.loai_phuong_tien === 'MAY_PHAT' ? 'bg-dark' : 'bg-primary'}">${v.loai_phuong_tien}</span></td>
                 <td>${v.nhan_hieu}</td>
-                <td>${v.loai_nhien_lieu_mac_dinh || '-'}</td>
+                <td><span class="badge ${v.loai_dong_co === 'MAY_XANG' ? 'bg-success' : 'bg-warning text-dark'}">${v.loai_dong_co === 'MAY_XANG' ? 'XĂNG' : 'DẦU'}</span></td>
                 <td>${v.dinh_muc}</td>
                 <td><span class="badge ${v.trang_thai === 'Sẵn sàng' ? 'bg-success' : 'bg-secondary'}">${v.trang_thai}</span></td>
                 <td class="text-end">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="viewHistoryXe(${v.id})" title="Lịch sử"><i class="fas fa-history"></i></button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editXe(${v.id})" title="Sửa"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="viewHistoryXe(${v.id})"><i class="fas fa-history"></i></button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="editXe(${v.id})"><i class="fas fa-edit"></i></button>
                 </td>
             </tr>
         `).join('');
     });
 }
-
 window.openModalXe = () => {
     document.getElementById('form-xe').reset();
     document.getElementById('xe-id').value = '';
     document.getElementById('btn-xoa-xe').classList.add('d-none');
-
-    // Load Fuel Types to Xe Modal
-    const select = document.getElementById('xe-loainl');
-    select.innerHTML = `<option value="">-- Chọn NL Mặc Định --</option>` +
-        fuelTypesCache.map(f => `<option value="${f.ten_loai}">${f.ten_loai}</option>`).join('');
-
     toggleXeFields();
     new bootstrap.Modal(document.getElementById('modalXe')).show();
 };
-
 window.toggleXeFields = () => {
     const type = document.querySelector('input[name="xe_type"]:checked').value;
-    const lblOdo = document.getElementById('lbl-odo');
-    if (type === 'MAY_PHAT') {
-        lblOdo.innerText = 'Số Giờ Vận Hành Ban Đầu';
-    } else {
-        lblOdo.innerText = 'ODO Khởi Điểm (Km)';
-    }
+    document.getElementById('lbl-odo').innerText = type === 'MAY_PHAT' ? 'Giờ Vận Hành' : 'ODO Khởi Điểm (Km)';
 };
-
 window.editXe = (id) => {
     const v = vehicleCache.find(x => x.id === id);
     if (!v) return;
-
-    const select = document.getElementById('xe-loainl');
-    select.innerHTML = `<option value="">-- Chọn NL Mặc Định --</option>` +
-        fuelTypesCache.map(f => `<option value="${f.ten_loai}">${f.ten_loai}</option>`).join('');
-
     document.getElementById('xe-id').value = v.id;
     if (v.loai_phuong_tien === 'MAY_PHAT') document.getElementById('type_may').checked = true;
     else document.getElementById('type_xe').checked = true;
     toggleXeFields();
-
     document.getElementById('xe-bienso').value = v.bien_so;
     document.getElementById('xe-hieu').value = v.nhan_hieu;
-    document.getElementById('xe-loainl').value = v.loai_nhien_lieu_mac_dinh;
+    document.getElementById('xe-dongco').value = v.loai_dong_co;
     document.getElementById('xe-dinhmuc').value = v.dinh_muc;
     document.getElementById('xe-namsx').value = v.nam_san_xuat;
     document.getElementById('xe-sokhung').value = v.so_khung;
     document.getElementById('xe-somay').value = v.so_may;
     document.getElementById('xe-odo').value = v.odo_hien_tai;
     document.getElementById('xe-trangthai').value = v.trang_thai;
-
     document.getElementById('btn-xoa-xe').classList.remove('d-none');
     new bootstrap.Modal(document.getElementById('modalXe')).show();
 };
-
 document.getElementById('form-xe').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('xe-id').value;
@@ -343,7 +420,7 @@ document.getElementById('form-xe').addEventListener('submit', async (e) => {
         loai_phuong_tien: document.querySelector('input[name="xe_type"]:checked').value,
         bien_so: document.getElementById('xe-bienso').value,
         nhan_hieu: document.getElementById('xe-hieu').value,
-        loai_nhien_lieu_mac_dinh: document.getElementById('xe-loainl').value,
+        loai_dong_co: document.getElementById('xe-dongco').value,
         dinh_muc: parseFloat(document.getElementById('xe-dinhmuc').value),
         nam_san_xuat: document.getElementById('xe-namsx').value,
         so_khung: document.getElementById('xe-sokhung').value,
@@ -359,35 +436,33 @@ document.getElementById('form-xe').addEventListener('submit', async (e) => {
         renderVehicles();
     }
 });
-
 window.xoaXe = async () => {
-    if (confirm('Xóa xe này sẽ xóa toàn bộ lịch sử cấp phát liên quan. Tiếp tục?')) {
+    if (confirm('Xóa xe này?')) {
         await ipcRenderer.invoke('xe:xoa', document.getElementById('xe-id').value);
         bootstrap.Modal.getInstance(document.getElementById('modalXe')).hide();
         renderVehicles();
     }
 };
-
 window.viewHistoryXe = async (id) => {
     const logs = await ipcRenderer.invoke('xe:lichSu', id);
-    const tbody = document.getElementById('table-history-content');
-    tbody.innerHTML = logs.map(l => `
+    document.getElementById('table-history-content').innerHTML = logs.map(l => `
         <tr>
             <td>${l.ngay_gio.slice(0, 10)}</td>
-            <td><span class="badge ${l.nguon_cap === 'KHO' ? 'bg-success' : 'bg-danger'}">${l.nguon_cap}</span></td>
-            <td>${l.muc_dich === 'CONG_TAC' ? 'Xe chạy: ' + l.quang_duong + ' Km' : 'Chạy máy phát'}</td>
-            <td>${l.so_luong}</td>
+            <td>--</td>
+            <td>${l.muc_dich === 'CONG_TAC' ? l.quang_duong + ' Km' : 'Máy phát'}</td>
+            <td>
+                ${l.so_lit_cap > 0 ? l.so_lit_cap + ' (Kho)<br>' : ''}
+                ${l.so_lit_mua > 0 ? l.so_lit_mua + ' (Mua)' : ''}
+                ${(l.so_lit_cap == 0 && l.so_lit_mua == 0) ? l.so_luong : ''}
+            </td>
             <td>${l.ten_nl || ''}</td>
         </tr>
     `).join('');
     new bootstrap.Modal(document.getElementById('modalHistory')).show();
 };
-
-// --- MODULE: TÀI XẾ (CARD RENDER) ---
 function renderDrivers() {
     loadAllData().then(() => {
-        const container = document.getElementById('grid-taixe');
-        container.innerHTML = driverCache.map(d => `
+        document.getElementById('grid-taixe').innerHTML = driverCache.map(d => `
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 driver-card border-0 shadow-sm">
                     <div class="row g-0 h-100">
@@ -399,8 +474,8 @@ function renderDrivers() {
                                 <div>
                                     <span class="rank-badge mb-1 d-inline-block">${d.cap_bac}</span>
                                     <h6 class="card-title fw-bold text-uppercase mb-1 text-military">${d.ho_ten}</h6>
-                                    <div class="small text-muted fw-bold mb-1"><i class="fas fa-id-badge me-1"></i>${d.so_hieu_quan_nhan || '---'}</div>
-                                    <div class="small text-muted fst-italic"><i class="fas fa-briefcase me-1"></i>${d.chuc_vu}</div>
+                                    <div class="small text-muted fw-bold mb-1">${d.so_hieu_quan_nhan || '---'}</div>
+                                    <div class="small text-muted fst-italic">${d.chuc_vu}</div>
                                 </div>
                                 <div class="mt-auto pt-2 border-top d-flex justify-content-end gap-2">
                                     <button class="btn btn-sm btn-outline-secondary" onclick="viewHistoryTaiXe(${d.id})"><i class="fas fa-history"></i></button>
@@ -414,7 +489,6 @@ function renderDrivers() {
         `).join('');
     });
 }
-
 window.openModalTaiXe = () => {
     document.getElementById('form-taixe').reset();
     document.getElementById('tx-id').value = '';
@@ -422,7 +496,6 @@ window.openModalTaiXe = () => {
     document.getElementById('btn-xoa-tx').classList.add('d-none');
     new bootstrap.Modal(document.getElementById('modalTaiXe')).show();
 };
-
 window.editTaiXe = (id) => {
     const d = driverCache.find(x => x.id === id);
     if (!d) return;
@@ -437,11 +510,9 @@ window.editTaiXe = (id) => {
     document.getElementById('tx-donvi').value = d.don_vi;
     document.getElementById('tx-anh-path').value = d.anh_dai_dien || '';
     document.getElementById('tx-preview').src = d.anh_dai_dien || 'assets/avatar-placeholder.png';
-
     document.getElementById('btn-xoa-tx').classList.remove('d-none');
     new bootstrap.Modal(document.getElementById('modalTaiXe')).show();
 };
-
 window.chonAnh = async () => {
     const path = await ipcRenderer.invoke('taixe:chonAnh');
     if (path) {
@@ -449,7 +520,6 @@ window.chonAnh = async () => {
         document.getElementById('tx-preview').src = path;
     }
 };
-
 document.getElementById('form-taixe').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('tx-id').value;
@@ -472,24 +542,21 @@ document.getElementById('form-taixe').addEventListener('submit', async (e) => {
         renderDrivers();
     }
 });
-
 window.xoaTaiXe = async () => {
-    if (confirm('Bạn có chắc chắn muốn xóa hồ sơ quân nhân này?')) {
+    if (confirm('Xóa hồ sơ này?')) {
         await ipcRenderer.invoke('taixe:xoa', document.getElementById('tx-id').value);
         bootstrap.Modal.getInstance(document.getElementById('modalTaiXe')).hide();
         renderDrivers();
     }
 };
-
 window.viewHistoryTaiXe = async (id) => {
     const logs = await ipcRenderer.invoke('taixe:lichSu', id);
-    const tbody = document.getElementById('table-history-content');
-    tbody.innerHTML = logs.map(l => `
+    document.getElementById('table-history-content').innerHTML = logs.map(l => `
         <tr>
             <td>${l.ngay_gio.slice(0, 10)}</td>
-            <td><span class="badge ${l.nguon_cap === 'KHO' ? 'bg-success' : 'bg-danger'}">${l.nguon_cap}</span></td>
+            <td>--</td>
             <td>Lái xe: ${l.quang_duong} km</td>
-            <td>${l.so_luong}</td>
+            <td>${(l.so_lit_cap || 0) + (l.so_lit_mua || 0)}</td>
             <td>--</td>
         </tr>
     `).join('');
