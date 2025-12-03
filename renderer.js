@@ -114,18 +114,17 @@ window.loadReportData = async () => {
     };
 
     const logs = await ipcRenderer.invoke('nghiepvu:layBaoCao', filter);
+    // Lưu logs vào biến toàn cục để dùng cho chức năng xem chi tiết
+    window.currentLogs = logs;
 
     const tbody = document.getElementById('table-logs');
     tbody.innerHTML = logs.map(log => {
-        // Display split logic
+        // Logic hiển thị số lượng (giữ nguyên)
         let qtyDisplay = '';
         if (log.so_lit_cap > 0) qtyDisplay += `<div class="text-success small"><span class="fw-bold">${log.so_lit_cap}</span> (Xe/Kho)</div>`;
         if (log.so_lit_mua > 0) qtyDisplay += `<div class="text-warning text-dark small"><span class="fw-bold">${log.so_lit_mua}</span> (Xe/Mua)</div>`;
-
-        // Machine display
         if (log.may_lit_cap > 0) qtyDisplay += `<div class="text-secondary small border-top pt-1 mt-1"><span class="fw-bold">${log.may_lit_cap}</span> (Máy/Kho)</div>`;
         if (log.may_lit_mua > 0) qtyDisplay += `<div class="text-secondary small"><span class="fw-bold">${log.may_lit_mua}</span> (Máy/Mua)</div>`;
-
         if (!qtyDisplay) qtyDisplay = `<div class="fw-bold">${log.so_luong}</div>`;
 
         let mayInfo = '';
@@ -134,7 +133,7 @@ window.loadReportData = async () => {
         return `
         <tr>
             <td>
-                <div>${log.ngay_gio.slice(0, 10)}</div>
+                <div class="fw-bold">${log.ngay_gio.slice(0, 10)}</div>
                 <small class="text-muted">${log.ngay_gio.slice(11, 16)}</small>
             </td>
             <td>
@@ -143,18 +142,18 @@ window.loadReportData = async () => {
             </td>
             <td>
                 <div class="fw-bold">${log.bien_so}</div>
-                <div class="small">${log.loai_phuong_tien}</div>
                 ${mayInfo}
             </td>
             <td>
-                <div>${log.ten_co_quan || '-'}</div>
-            </td>
-            <td>
-                <div class="text-truncate" style="max-width: 150px;">${log.diem_den || ''}</div>
-                <div class="small text-muted text-truncate" style="max-width: 150px;">${log.noi_dung || ''}</div>
+                <div class="fw-bold small">${log.ten_co_quan || '-'}</div>
+                <div class="small text-muted">${log.ten_nhiem_vu || '-'}</div>
             </td>
             <td>${qtyDisplay}</td>
-            <td class="fw-bold text-dark">${new Intl.NumberFormat('vi-VN').format(log.thanh_tien)}</td>
+            <td class="fw-bold text-dark text-end">${new Intl.NumberFormat('vi-VN').format(log.thanh_tien)}</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary border-0" onclick="openEditModal(${log.id})" title="Sửa phiếu"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-outline-danger border-0" onclick="xoaLog(${log.id})" title="Xóa phiếu này"><i class="fas fa-trash-alt"></i></button>
+            </td>
         </tr>
     `}).join('');
 };
@@ -644,4 +643,268 @@ window.viewHistoryTaiXe = async (id) => {
         </tr>
     `).join('');
     new bootstrap.Modal(document.getElementById('modalHistory')).show();
+};
+
+// 1. Hàm Xóa
+window.xoaLog = async (id) => {
+    if (confirm('CẢNH BÁO: Bạn có chắc chắn muốn xóa phiếu lệnh này không?\nDữ liệu thống kê sẽ bị trừ đi.')) {
+        const res = await ipcRenderer.invoke('nghiepvu:xoaLog', id);
+        if (res.success) {
+            loadDashboard(); // Tải lại thống kê
+            loadReportData(); // Tải lại bảng
+        } else {
+            alert('Lỗi: ' + res.error);
+        }
+    }
+};
+
+// 2. Hàm Xem Chi Tiết
+window.xemChiTietLog = (id) => {
+    const log = window.currentLogs.find(l => l.id === id);
+    if (!log) return;
+
+    const html = `
+        <div class="col-md-6 border-end">
+            <h6 class="text-primary fw-bold border-bottom pb-1">I. THÔNG TIN PHIẾU LỆNH</h6>
+            <table class="table table-sm table-borderless small mb-0">
+                <tr><td class="text-muted w-40">Số phiếu:</td><td class="fw-bold text-danger">${log.so_phieu}</td></tr>
+                <tr><td class="text-muted">Ngày phiếu:</td><td>${log.ngay_phieu || '-'}</td></tr>
+                <tr><td class="text-muted">Số lệnh:</td><td class="fw-bold">${log.so_lenh}</td></tr>
+                <tr><td class="text-muted">Ngày lệnh:</td><td>${log.ngay_lenh || '-'}</td></tr>
+                <tr><td class="text-muted">Nhóm C:</td><td class="fw-bold">${log.nhom_c || '-'}</td></tr>
+                <tr><td class="text-muted">Người tạo:</td><td>${log.nguoi_tao || 'Admin'}</td></tr>
+            </table>
+        </div>
+        <div class="col-md-6">
+            <h6 class="text-success fw-bold border-bottom pb-1">II. LỘ TRÌNH & THỜI GIAN</h6>
+             <table class="table table-sm table-borderless small mb-0">
+                <tr><td class="text-muted w-40">Cơ quan:</td><td class="fw-bold">${log.ten_co_quan}</td></tr>
+                <tr><td class="text-muted">Nhiệm vụ:</td><td>${log.ten_nhiem_vu}</td></tr>
+                <tr><td class="text-muted">Điểm đến:</td><td>${log.diem_den}</td></tr>
+                <tr><td class="text-muted">Nội dung:</td><td>${log.noi_dung}</td></tr>
+                <tr><td class="text-muted">Xuất phát:</td><td class="fw-bold">${log.gio_di || '--:--'} (${log.ngay_di})</td></tr>
+                <tr><td class="text-muted">Về đơn vị:</td><td class="fw-bold">${log.gio_ve || '--:--'} (${log.ngay_ve})</td></tr>
+            </table>
+        </div>
+        <div class="col-12"><hr class="my-1"></div>
+        
+        <div class="col-md-6 border-end">
+            <h6 class="text-dark fw-bold border-bottom pb-1">III. XE Ô TÔ (${log.bien_so})</h6>
+            <table class="table table-sm table-borderless small mb-0">
+                <tr><td class="text-muted">Lái xe:</td><td>${log.ten_tai_xe} (${log.cap_bac})</td></tr>
+                <tr><td class="text-muted">ODO Cũ:</td><td>${log.odo_cu}</td></tr>
+                <tr><td class="text-muted">ODO Mới:</td><td>${log.odo_moi}</td></tr>
+                <tr><td class="text-muted fw-bold">Quãng đường:</td><td class="fw-bold text-primary">${log.quang_duong} Km</td></tr>
+                <tr><td class="text-muted">Cấp Kho:</td><td class="fw-bold">${log.so_lit_cap} Lít</td></tr>
+                <tr><td class="text-muted">Mua Ngoài:</td><td class="fw-bold">${log.so_lit_mua} Lít</td></tr>
+            </table>
+        </div>
+
+        <div class="col-md-6">
+            <h6 class="text-secondary fw-bold border-bottom pb-1">IV. MÁY PHÁT / MÁY NỔ</h6>
+            ${log.may_bien_so ? `
+                <table class="table table-sm table-borderless small mb-0">
+                    <tr><td class="text-muted w-40">Máy phát:</td><td class="fw-bold">${log.may_bien_so}</td></tr>
+                    <tr><td class="text-muted">Cấp kho:</td><td>${log.may_lit_cap} Lít</td></tr>
+                    <tr><td class="text-muted">Mua ngoài:</td><td>${log.may_lit_mua} Lít</td></tr>
+                    <tr><td class="text-muted">Tổng tiền máy:</td><td>${new Intl.NumberFormat('vi-VN').format((log.may_lit_cap * log.may_gia_cap) + (log.may_lit_mua * log.may_gia_mua))} đ</td></tr>
+                </table>
+            ` : '<div class="text-muted small fst-italic mt-2">Không sử dụng máy kèm theo.</div>'}
+        </div>
+    `;
+
+    document.getElementById('detail-content').innerHTML = html;
+    new bootstrap.Modal(document.getElementById('modalChiTietPhieu')).show();
+};
+
+// --- LOGIC SỬA PHIẾU (MỚI) ---
+
+// 1. Mở Modal Sửa
+window.openEditModal = (id) => {
+    const log = window.currentLogs.find(l => l.id === id);
+    if (!log) return;
+
+    // Tạo Select box cho Cơ quan & Nhiệm vụ từ Cache
+    const coQuanOpts = departmentsCache.map(d => `<option value="${d.id}" ${d.id == log.co_quan_id ? 'selected' : ''}>${d.ten_co_quan}</option>`).join('');
+    const nhiemVuOpts = missionsCache.map(m => `<option value="${m.id}" ${m.id == log.nhiem_vu_id ? 'selected' : ''}>${m.ten_nhiem_vu}</option>`).join('');
+
+    const html = `
+    <form id="form-edit-log">
+        <input type="hidden" id="edit-id" value="${log.id}">
+        <input type="hidden" id="edit-xe-id" value="${log.xe_id}">
+        
+        <div class="row g-2 mb-3 bg-light p-2 rounded border">
+            <div class="col-md-3">
+                <label class="small fw-bold">Số Phiếu</label>
+                <input type="text" class="form-control form-control-sm fw-bold text-danger" id="edit-so-phieu" value="${log.so_phieu || ''}">
+            </div>
+            <div class="col-md-3">
+                <label class="small fw-bold">Ngày Phiếu</label>
+                <input type="date" class="form-control form-control-sm" id="edit-ngay-phieu" value="${log.ngay_phieu || ''}">
+            </div>
+             <div class="col-md-3">
+                <label class="small fw-bold">Số Lệnh</label>
+                <input type="text" class="form-control form-control-sm fw-bold" id="edit-so-lenh" value="${log.so_lenh || ''}">
+            </div>
+            <div class="col-md-3">
+                <label class="small fw-bold">Ngày Lệnh</label>
+                <input type="date" class="form-control form-control-sm" id="edit-ngay-lenh" value="${log.ngay_lenh || ''}">
+            </div>
+             <div class="col-md-3">
+                <label class="small fw-bold">Nhóm C</label>
+                <input type="text" class="form-control form-control-sm" id="edit-nhom-c" value="${log.nhom_c || ''}">
+            </div>
+            <div class="col-md-4">
+                <label class="small fw-bold">Cơ Quan</label>
+                <select class="form-select form-select-sm" id="edit-co-quan">${coQuanOpts}</select>
+            </div>
+            <div class="col-md-5">
+                <label class="small fw-bold">Nhiệm Vụ</label>
+                <select class="form-select form-select-sm" id="edit-nhiem-vu">${nhiemVuOpts}</select>
+            </div>
+        </div>
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-6">
+                <label class="small">Điểm đến</label>
+                <input type="text" class="form-control form-control-sm" id="edit-diem-den" value="${log.diem_den || ''}">
+            </div>
+             <div class="col-md-6">
+                <label class="small">Nội dung</label>
+                <input type="text" class="form-control form-control-sm" id="edit-noi-dung" value="${log.noi_dung || ''}">
+            </div>
+            <div class="col-3"><input type="date" class="form-control form-control-sm" id="edit-ngay-di" value="${log.ngay_di || ''}"></div>
+            <div class="col-3"><input type="time" class="form-control form-control-sm" id="edit-gio-di" value="${log.gio_di || ''}"></div>
+            <div class="col-3"><input type="date" class="form-control form-control-sm" id="edit-ngay-ve" value="${log.ngay_ve || ''}"></div>
+            <div class="col-3"><input type="time" class="form-control form-control-sm" id="edit-gio-ve" value="${log.gio_ve || ''}"></div>
+        </div>
+
+        <div class="row g-2 border-top pt-2">
+            <div class="col-md-3">
+                <label class="small text-muted">ODO Cũ</label>
+                <input type="number" class="form-control form-control-sm" id="edit-odo-cu" value="${log.odo_cu}" oninput="calcEditOdo()">
+            </div>
+             <div class="col-md-3">
+                <label class="small fw-bold text-danger">ODO Mới</label>
+                <input type="number" class="form-control form-control-sm fw-bold" id="edit-odo-moi" value="${log.odo_moi}" oninput="calcEditOdo()">
+            </div>
+             <div class="col-md-3">
+                <label class="small fw-bold text-primary">Quãng đường</label>
+                <input type="number" class="form-control form-control-sm fw-bold text-primary" id="edit-quang-duong" value="${log.quang_duong}" readonly>
+            </div>
+            <div class="col-md-3">
+                <label class="small fw-bold text-success">Thành Tiền</label>
+                <input type="text" class="form-control form-control-sm fw-bold text-success" id="edit-thanh-tien" value="${log.thanh_tien}" readonly>
+            </div>
+        </div>
+
+        <div class="row g-2 mt-2 bg-light border rounded p-2">
+            <div class="col-6 border-end pe-3">
+                <div class="small fw-bold mb-1 text-primary">NHIÊN LIỆU XE (${log.bien_so})</div>
+                <div class="input-group input-group-sm mb-1">
+                    <span class="input-group-text w-50">Cấp Kho</span>
+                    <input type="number" step="0.01" class="form-control edit-calc" id="edit-lit-cap" value="${log.so_lit_cap}" data-price="${log.don_gia}">
+                </div>
+                 <div class="input-group input-group-sm">
+                    <span class="input-group-text w-50">Mua Ngoài</span>
+                    <input type="number" step="0.01" class="form-control edit-calc" id="edit-lit-mua" value="${log.so_lit_mua}" data-price="${log.don_gia_mua}">
+                </div>
+            </div>
+            <div class="col-6 ps-3">
+                <div class="small fw-bold mb-1 text-secondary">MÁY KÈM THEO</div>
+                 <div class="input-group input-group-sm mb-1">
+                    <span class="input-group-text w-50">Cấp Kho</span>
+                    <input type="number" step="0.01" class="form-control edit-calc" id="edit-may-lit-cap" value="${log.may_lit_cap}" data-price="${log.may_gia_cap}">
+                </div>
+                 <div class="input-group input-group-sm">
+                    <span class="input-group-text w-50">Mua Ngoài</span>
+                    <input type="number" step="0.01" class="form-control edit-calc" id="edit-may-lit-mua" value="${log.may_lit_mua}" data-price="${log.may_gia_mua}">
+                </div>
+            </div>
+        </div>
+    </form>
+    <div class="mt-3 text-end border-top pt-2">
+        <button class="btn btn-secondary btn-sm me-2" data-bs-dismiss="modal">Hủy</button>
+        <button class="btn btn-primary btn-sm fw-bold" onclick="saveLog()"><i class="fas fa-save me-1"></i> LƯU THAY ĐỔI</button>
+    </div>
+    `;
+
+    document.getElementById('detail-content').innerHTML = html;
+
+    // Gán sự kiện tính tiền tự động
+    document.querySelectorAll('.edit-calc').forEach(el => el.addEventListener('input', calcEditMoney));
+
+    new bootstrap.Modal(document.getElementById('modalChiTietPhieu')).show();
+};
+
+// 2. Hàm tính lại ODO
+window.calcEditOdo = () => {
+    const odoCu = parseInt(document.getElementById('edit-odo-cu').value) || 0;
+    const odoMoi = parseInt(document.getElementById('edit-odo-moi').value) || 0;
+    if (odoMoi >= odoCu) {
+        document.getElementById('edit-quang-duong').value = odoMoi - odoCu;
+    }
+};
+
+// 3. Hàm tính lại Tiền
+window.calcEditMoney = () => {
+    const getVal = (id) => parseFloat(document.getElementById(id).value) || 0;
+    const getPrice = (id) => parseFloat(document.getElementById(id).getAttribute('data-price')) || 0;
+
+    const tienXe = (getVal('edit-lit-cap') * getPrice('edit-lit-cap')) +
+        (getVal('edit-lit-mua') * getPrice('edit-lit-mua'));
+
+    const tienMay = (getVal('edit-may-lit-cap') * getPrice('edit-may-lit-cap')) +
+        (getVal('edit-may-lit-mua') * getPrice('edit-may-lit-mua'));
+
+    document.getElementById('edit-thanh-tien').value = tienXe + tienMay;
+};
+
+// 4. Hàm Lưu Dữ Liệu
+window.saveLog = async () => {
+    if (!confirm("Xác nhận lưu các thay đổi này?")) return;
+
+    const data = {
+        id: document.getElementById('edit-id').value,
+        so_phieu: document.getElementById('edit-so-phieu').value,
+        ngay_phieu: document.getElementById('edit-ngay-phieu').value,
+        so_lenh: document.getElementById('edit-so-lenh').value,
+        ngay_lenh: document.getElementById('edit-ngay-lenh').value,
+        nhom_c: document.getElementById('edit-nhom-c').value,
+        co_quan_id: document.getElementById('edit-co-quan').value,
+        nhiem_vu_id: document.getElementById('edit-nhiem-vu').value,
+        diem_den: document.getElementById('edit-diem-den').value,
+        noi_dung: document.getElementById('edit-noi-dung').value,
+        ngay_di: document.getElementById('edit-ngay-di').value,
+        gio_di: document.getElementById('edit-gio-di').value,
+        ngay_ve: document.getElementById('edit-ngay-ve').value,
+        gio_ve: document.getElementById('edit-gio-ve').value,
+
+        odo_cu: document.getElementById('edit-odo-cu').value,
+        odo_moi: document.getElementById('edit-odo-moi').value,
+        quang_duong: document.getElementById('edit-quang-duong').value,
+
+        so_lit_cap: document.getElementById('edit-lit-cap').value,
+        so_lit_mua: document.getElementById('edit-lit-mua').value,
+        // Giữ nguyên đơn giá cũ (lấy từ attribute)
+        don_gia: document.getElementById('edit-lit-cap').getAttribute('data-price'),
+        don_gia_mua: document.getElementById('edit-lit-mua').getAttribute('data-price'),
+
+        may_lit_cap: document.getElementById('edit-may-lit-cap').value,
+        may_lit_mua: document.getElementById('edit-may-lit-mua').value,
+        may_gia_cap: document.getElementById('edit-may-lit-cap').getAttribute('data-price'),
+        may_gia_mua: document.getElementById('edit-may-lit-mua').getAttribute('data-price'),
+
+        thanh_tien: document.getElementById('edit-thanh-tien').value
+    };
+
+    const res = await ipcRenderer.invoke('nghiepvu:suaLog', data);
+    if (res.success) {
+        bootstrap.Modal.getInstance(document.getElementById('modalChiTietPhieu')).hide();
+        loadDashboard(); // Tải lại biểu đồ tổng
+        loadReportData(); // Tải lại bảng dữ liệu
+        alert("Đã cập nhật thành công!");
+    } else {
+        alert("Lỗi cập nhật: " + res.error);
+    }
 };

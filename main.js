@@ -161,3 +161,22 @@ ipcMain.handle('nghiepvu:capPhat', (e, data) => {
         return { success: true };
     } catch (err) { return { success: false, error: err.message }; }
 });
+
+ipcMain.handle('nghiepvu:xoaLog', (e, id) => {
+    try {
+        db.xoaNhatKy(id);
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+// Thêm vào main.js, bên dưới phần ipcMain.handle('nghiepvu:xoaLog'...)
+ipcMain.handle('nghiepvu:suaLog', (e, data) => {
+    try {
+        db.suaNhatKy(data);
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});

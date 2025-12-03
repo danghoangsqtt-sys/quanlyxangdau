@@ -322,13 +322,11 @@ exports.layThongKeDashboard = () => {
 
 exports.layBaoCaoTuyChinh = (filter) => {
     let sql = `
-        SELECT f.id, f.ngay_gio, v.bien_so, v.loai_phuong_tien, d.ho_ten as ten_tai_xe, d.cap_bac,
-               f.odo_cu, f.odo_moi, f.quang_duong, 
-               f.so_luong, f.so_lit_cap, f.so_lit_mua, f.don_gia, f.don_gia_mua,
-               f.thanh_tien,
-               f.muc_dich, ft.ten_loai, ft.don_vi,
-               f.so_phieu, f.so_lenh, dep.ten_co_quan, f.noi_dung, f.diem_den, m.ten_nhiem_vu,
-               vm.bien_so as may_bien_so, f.may_lit_cap, f.may_lit_mua
+        SELECT f.*, 
+               v.bien_so, v.loai_phuong_tien, d.ho_ten as ten_tai_xe, d.cap_bac,
+               ft.ten_loai, ft.don_vi,
+               dep.ten_co_quan, m.ten_nhiem_vu,
+               vm.bien_so as may_bien_so
         FROM fuel_logs f
         JOIN vehicles v ON f.xe_id = v.id
         JOIN drivers d ON f.tai_xe_id = d.id
@@ -427,6 +425,38 @@ exports.capPhatNhienLieu = (data) => {
     });
 
     return transaction();
+};
+// Thêm hàm này vào database.js
+exports.xoaNhatKy = (id) => {
+    // Lưu ý: Nghiệp vụ thực tế có thể cần hoàn lại ODO cho xe, 
+    // nhưng để đơn giản ta chỉ xóa log.
+    return db.prepare('DELETE FROM fuel_logs WHERE id = ?').run(id);
+};
+
+exports.suaNhatKy = (data) => {
+    // Câu lệnh cập nhật toàn bộ thông tin phiếu
+    const stmt = db.prepare(`
+        UPDATE fuel_logs
+        SET so_phieu = @so_phieu,
+            ngay_phieu = @ngay_phieu,
+            so_lenh = @so_lenh,
+            ngay_lenh = @ngay_lenh,
+            nhom_c = @nhom_c,
+            co_quan_id = @co_quan_id,
+            nhiem_vu_id = @nhiem_vu_id,
+            diem_den = @diem_den,
+            noi_dung = @noi_dung,
+            ngay_di = @ngay_di, gio_di = @gio_di,
+            ngay_ve = @ngay_ve, gio_ve = @gio_ve,
+            odo_cu = @odo_cu, odo_moi = @odo_moi, quang_duong = @quang_duong,
+            so_lit_cap = @so_lit_cap, don_gia = @don_gia,
+            so_lit_mua = @so_lit_mua, don_gia_mua = @don_gia_mua,
+            may_lit_cap = @may_lit_cap, may_gia_cap = @may_gia_cap,
+            may_lit_mua = @may_lit_mua, may_gia_mua = @may_gia_mua,
+            thanh_tien = @thanh_tien
+        WHERE id = @id
+    `);
+    return stmt.run(data);
 };
 
 initDB();

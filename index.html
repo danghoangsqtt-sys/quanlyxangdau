@@ -204,10 +204,10 @@
                                         <th>Thời Gian</th>
                                         <th>Phiếu/Lệnh</th>
                                         <th>Phương Tiện</th>
-                                        <th>Cơ Quan</th>
-                                        <th>Nội Dung</th>
+                                        <th>Cơ Quan/Nhiệm Vụ</th>
                                         <th>Cấp/Mua</th>
                                         <th>Thành Tiền</th>
+                                        <th class="text-center">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody id="table-logs"></tbody>
@@ -927,6 +927,22 @@
 
     <script src="renderer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <div class="modal fade" id="modalChiTietPhieu" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-military text-white">
+                    <h6 class="modal-title fw-bold text-uppercase"><i class="fas fa-info-circle me-2"></i> Chi Tiết
+                        Phiếu Lệnh</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3" id="detail-content">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
