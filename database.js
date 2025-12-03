@@ -1,8 +1,10 @@
 
+
 const Database = require('better-sqlite3');
 const crypto = require('crypto');
+const path = require('path');
 
-// Khởi tạo DB phiên bản SQTT 2025 v4.0 Hybrid
+// Khởi tạo DB phiên bản SQTT 2025 v5.0
 const db = new Database('sqtt_fuel_manager.db');
 
 // --- TIỆN ÍCH ---
@@ -41,7 +43,7 @@ function initDB() {
   `);
     try { db.prepare("ALTER TABLE fuel_types ADD COLUMN nhom_nl TEXT DEFAULT 'XANG'").run(); } catch (e) { }
 
-    // 3. Bảng Danh Mục Nhiệm Vụ (MỚI v4.0)
+    // 3. Bảng Danh Mục Nhiệm Vụ (MỚI V5.0)
     db.exec(`
     CREATE TABLE IF NOT EXISTS missions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,16 +53,21 @@ function initDB() {
     // Seed nhiệm vụ mẫu
     if (db.prepare('SELECT count(*) as count FROM missions').get().count === 0) {
         const insertM = db.prepare('INSERT INTO missions (ten_nhiem_vu) VALUES (?)');
-        ['Sẵn sàng chiến đấu', 'Hành quân dã ngoại', 'Công tác thường xuyên', 'Vận chuyển hàng hóa', 'Đưa đón cán bộ', 'Trực ban'].forEach(n => insertM.run(n));
+        ['Sẵn sàng chiến đấu', 'Công tác thường xuyên', 'Huấn luyện dã ngoại', 'Đột xuất', 'Phòng chống thiên tai'].forEach(n => insertM.run(n));
     }
 
-    // 4. Bảng Danh Mục Cơ Quan
+    // 4. Bảng Danh Mục Cơ Quan (MỚI V5.0)
     db.exec(`
     CREATE TABLE IF NOT EXISTS departments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ten_co_quan TEXT UNIQUE NOT NULL
     )
   `);
+    // Seed cơ quan mẫu
+    if (db.prepare('SELECT count(*) as count FROM departments').get().count === 0) {
+        const insertD = db.prepare('INSERT INTO departments (ten_co_quan) VALUES (?)');
+        ['Phòng Tham Mưu', 'Phòng Chính Trị', 'Phòng Hậu Cần', 'Phòng Kỹ Thuật', 'Ban Tài Chính'].forEach(n => insertD.run(n));
+    }
 
     // 5. Bảng Hồ Sơ Phương Tiện
     db.exec(`
@@ -78,6 +85,7 @@ function initDB() {
       trang_thai TEXT DEFAULT 'Sẵn sàng'
     )
   `);
+    try { db.prepare("ALTER TABLE vehicles ADD COLUMN loai_dong_co TEXT DEFAULT 'MAY_XANG'").run(); } catch (e) { }
 
     // 6. Bảng Hồ Sơ Tài Xế
     db.exec(`
@@ -95,87 +103,101 @@ function initDB() {
     )
   `);
 
-    // 7. Bảng Nhật Ký Cấp Phát (NÂNG CẤP v4.0 HYBRID)
+    // 7. Bảng Nhật Ký Cấp Phát (NÂNG CẤP LỚN V5.0 & V5.1 Split Fuel & V5.2 Machine Support)
     db.exec(`
     CREATE TABLE IF NOT EXISTS fuel_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      -- Thông tin chung
+      -- Thông tin hệ thống cũ
       ngay_gio TEXT NOT NULL,
-      so_phieu TEXT,
-      ngay_phieu TEXT,
-      so_lenh TEXT,
-      ngay_lenh TEXT,
-      
-      -- Đối tượng
       xe_id INTEGER NOT NULL,
       tai_xe_id INTEGER NOT NULL,
-      nhiem_vu_id INTEGER,           -- Mới v4.0
-      thiet_bi_id INTEGER,           -- Mới v4.0 (ID của máy phát đi kèm nếu có)
-      co_quan_id INTEGER,
-      
-      -- Hành trình
-      diem_den TEXT,
-      noi_dung TEXT,
-      ngay_di TEXT, gio_di TEXT,
-      ngay_ve TEXT, gio_ve TEXT,
-      
-      -- ODO Xe
+      loai_nhien_lieu_id INTEGER,
+      nguon_cap TEXT DEFAULT 'KHO', 
+      muc_dich TEXT DEFAULT 'CONG_TAC',
       odo_cu INTEGER DEFAULT 0,
       odo_moi INTEGER DEFAULT 0,
       quang_duong INTEGER DEFAULT 0,
       
-      -- CHI TIẾT NHIÊN LIỆU (TÁCH BIỆT XE & MÁY)
-      loai_nhien_lieu_id INTEGER,
-      
-      -- Phần cho XE
-      lit_xe_cap REAL DEFAULT 0,
-      lit_xe_mua REAL DEFAULT 0,
-      gia_xe_mua REAL DEFAULT 0,
-      
-      -- Phần cho MÁY (Thiết bị đi kèm)
-      lit_may_cap REAL DEFAULT 0,
-      lit_may_mua REAL DEFAULT 0,
-      gia_may_mua REAL DEFAULT 0,
-      
-      -- Đơn giá chung tại kho (áp dụng cho cả xe và máy khi cấp kho)
-      don_gia_kho REAL DEFAULT 0,
+      -- Fuel Info V5.1 (Split)
+      so_luong REAL DEFAULT 0, -- Tổng cộng (cấp + mua) để thống kê nhanh
+      so_lit_cap REAL DEFAULT 0, -- Lấy tại kho
+      don_gia REAL DEFAULT 0,    -- Giá kho
+      so_lit_mua REAL DEFAULT 0, -- Mua ngoài
+      don_gia_mua REAL DEFAULT 0, -- Giá mua ngoài
 
-      -- Tổng hợp
-      tong_lit_cap REAL DEFAULT 0,   -- lit_xe_cap + lit_may_cap
-      tong_lit_mua REAL DEFAULT 0,   -- lit_xe_mua + lit_may_mua
-      so_luong REAL DEFAULT 0,       -- Tổng tất cả lit
-      thanh_tien REAL DEFAULT 0,     -- Tổng tiền cuối cùng
-
+      thanh_tien REAL DEFAULT 0,
       nguoi_tao TEXT,
       ghi_chu TEXT,
+      
+      -- Thông tin V5.0 (Phiếu lệnh điều xe)
+      nhom_c TEXT,
+      so_phieu TEXT,
+      ngay_phieu TEXT,
+      so_lenh TEXT,
+      ngay_lenh TEXT,
+      co_quan_id INTEGER, 
+      noi_dung TEXT,
+      diem_den TEXT,
+      nhiem_vu_id INTEGER,
+      
+      -- Thời gian chi tiết
+      ngay_di TEXT,
+      gio_di TEXT,
+      ngay_ve TEXT,
+      gio_ve TEXT,
+      
+      -- V5.2: Thông tin Máy nổ / Máy phát đi kèm
+      may_id INTEGER,
+      may_loai_nl_id INTEGER,
+      may_lit_cap REAL DEFAULT 0,
+      may_gia_cap REAL DEFAULT 0,
+      may_lit_mua REAL DEFAULT 0,
+      may_gia_mua REAL DEFAULT 0,
 
       FOREIGN KEY(xe_id) REFERENCES vehicles(id),
+      FOREIGN KEY(may_id) REFERENCES vehicles(id),
       FOREIGN KEY(tai_xe_id) REFERENCES drivers(id),
       FOREIGN KEY(loai_nhien_lieu_id) REFERENCES fuel_types(id),
+      FOREIGN KEY(may_loai_nl_id) REFERENCES fuel_types(id),
       FOREIGN KEY(nhiem_vu_id) REFERENCES missions(id),
       FOREIGN KEY(co_quan_id) REFERENCES departments(id)
     )
   `);
 
-    // MIGRATION v4.0: Thêm các cột mới nếu chưa có
-    const columnsV4 = [
+    // MIGRATION V5.0 & V5.1 & V5.2
+    const columnsV5 = [
+        { col: 'nhom_c', type: 'TEXT' },
+        { col: 'so_phieu', type: 'TEXT' },
+        { col: 'ngay_phieu', type: 'TEXT' },
+        { col: 'so_lenh', type: 'TEXT' },
+        { col: 'ngay_lenh', type: 'TEXT' },
+        { col: 'co_quan_id', type: 'INTEGER' },
+        { col: 'noi_dung', type: 'TEXT' },
+        { col: 'diem_den', type: 'TEXT' },
         { col: 'nhiem_vu_id', type: 'INTEGER' },
-        { col: 'thiet_bi_id', type: 'INTEGER' },
-        { col: 'lit_xe_cap', type: 'REAL DEFAULT 0' },
-        { col: 'lit_xe_mua', type: 'REAL DEFAULT 0' },
-        { col: 'gia_xe_mua', type: 'REAL DEFAULT 0' },
-        { col: 'lit_may_cap', type: 'REAL DEFAULT 0' },
-        { col: 'lit_may_mua', type: 'REAL DEFAULT 0' },
-        { col: 'gia_may_mua', type: 'REAL DEFAULT 0' },
-        { col: 'don_gia_kho', type: 'REAL DEFAULT 0' },
-        { col: 'tong_lit_cap', type: 'REAL DEFAULT 0' },
-        { col: 'tong_lit_mua', type: 'REAL DEFAULT 0' }
+        { col: 'ngay_di', type: 'TEXT' },
+        { col: 'gio_di', type: 'TEXT' },
+        { col: 'ngay_ve', type: 'TEXT' },
+        { col: 'gio_ve', type: 'TEXT' },
+        // V5.1 New Columns
+        { col: 'so_lit_cap', type: 'REAL DEFAULT 0' },
+        { col: 'so_lit_mua', type: 'REAL DEFAULT 0' },
+        { col: 'don_gia_mua', type: 'REAL DEFAULT 0' },
+        // V5.2 Machine Columns
+        { col: 'may_id', type: 'INTEGER' },
+        { col: 'may_loai_nl_id', type: 'INTEGER' },
+        { col: 'may_lit_cap', type: 'REAL DEFAULT 0' },
+        { col: 'may_gia_cap', type: 'REAL DEFAULT 0' },
+        { col: 'may_lit_mua', type: 'REAL DEFAULT 0' },
+        { col: 'may_gia_mua', type: 'REAL DEFAULT 0' }
     ];
 
-    columnsV4.forEach(def => {
+    columnsV5.forEach(def => {
         try {
             db.prepare(`ALTER TABLE fuel_logs ADD COLUMN ${def.col} ${def.type}`).run();
-        } catch (e) { } // Column exists
+        } catch (e) {
+            // Column exists, ignore
+        }
     });
 }
 
@@ -191,20 +213,33 @@ exports.dangNhap = (username, password) => {
     return null;
 };
 
-// B. DANH MỤC
+exports.doiMatKhau = (id, oldPass, newPass) => {
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    if (!user) throw new Error('Người dùng không tồn tại');
+    if (user.password !== hashPassword(oldPass)) throw new Error('Mật khẩu cũ không chính xác');
+
+    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashPassword(newPass), id);
+    return true;
+};
+
+// B. QUẢN LÝ DANH MỤC (V5.0)
+// Nhiên Liệu
 exports.layDanhSachNhienLieu = () => db.prepare('SELECT * FROM fuel_types ORDER BY nhom_nl, ten_loai').all();
 exports.themNhienLieu = (data) => db.prepare('INSERT INTO fuel_types (ten_loai, don_vi, nhom_nl, ghi_chu) VALUES (@ten_loai, @don_vi, @nhom_nl, @ghi_chu)').run(data);
 exports.xoaNhienLieu = (id) => db.prepare('DELETE FROM fuel_types WHERE id = ?').run(id);
 
+// Nhiệm Vụ
 exports.layDanhSachNhiemVu = () => db.prepare('SELECT * FROM missions ORDER BY ten_nhiem_vu').all();
 exports.themNhiemVu = (ten) => db.prepare('INSERT INTO missions (ten_nhiem_vu) VALUES (?)').run(ten);
 exports.xoaNhiemVu = (id) => db.prepare('DELETE FROM missions WHERE id = ?').run(id);
 
+// Cơ Quan
 exports.layDanhSachCoQuan = () => db.prepare('SELECT * FROM departments ORDER BY ten_co_quan').all();
 exports.themCoQuan = (ten) => db.prepare('INSERT INTO departments (ten_co_quan) VALUES (?)').run(ten);
 exports.xoaCoQuan = (id) => db.prepare('DELETE FROM departments WHERE id = ?').run(id);
 
-// C. XE & TÀI XẾ
+
+// C. QUẢN LÝ XE
 exports.layDanhSachXe = () => db.prepare('SELECT * FROM vehicles ORDER BY bien_so').all();
 exports.themXe = (xe) => {
     const stmt = db.prepare(`
@@ -227,17 +262,17 @@ exports.xoaXe = (id) => db.prepare('DELETE FROM vehicles WHERE id = ?').run(id);
 exports.layLichSuXe = (id) => {
     return db.prepare(`
         SELECT f.ngay_gio, d.ho_ten as lai_xe, f.odo_cu, f.odo_moi, f.quang_duong, 
-               f.so_luong, f.thanh_tien,
-               ft.ten_loai as ten_nl, m.ten_nhiem_vu
+               f.so_lit_cap, f.so_lit_mua, f.so_luong,
+               ft.ten_loai as ten_nl, f.muc_dich
         FROM fuel_logs f
         JOIN drivers d ON f.tai_xe_id = d.id
         LEFT JOIN fuel_types ft ON f.loai_nhien_lieu_id = ft.id
-        LEFT JOIN missions m ON f.nhiem_vu_id = m.id
         WHERE f.xe_id = ?
         ORDER BY f.ngay_gio DESC
     `).all(id);
 };
 
+// D. TÀI XẾ
 exports.layDanhSachTaiXe = () => db.prepare('SELECT * FROM drivers ORDER BY ho_ten').all();
 exports.themTaiXe = (tx) => {
     const stmt = db.prepare(`
@@ -259,7 +294,7 @@ exports.suaTaiXe = (tx) => {
 exports.xoaTaiXe = (id) => db.prepare('DELETE FROM drivers WHERE id = ?').run(id);
 exports.layLichSuTaiXe = (id) => {
     return db.prepare(`
-    SELECT f.ngay_gio, v.bien_so, f.quang_duong, f.so_luong
+    SELECT f.ngay_gio, v.bien_so, f.quang_duong, f.so_luong, f.so_lit_cap, f.so_lit_mua
     FROM fuel_logs f
     JOIN vehicles v ON f.xe_id = v.id
     WHERE f.tai_xe_id = ?
@@ -267,14 +302,15 @@ exports.layLichSuTaiXe = (id) => {
   `).all(id);
 };
 
-// D. NGHIỆP VỤ & BÁO CÁO (V4.0)
+// E. CẤP PHÁT & BÁO CÁO (V5.0)
 
 exports.layThongKeDashboard = () => {
     const thangNay = new Date().toISOString().slice(0, 7);
+    // Tổng lượng = Tổng so_luong (đã tính gộp khi insert)
     const tongLuong = db.prepare('SELECT SUM(so_luong) as total FROM fuel_logs WHERE ngay_gio LIKE ?').get(`${thangNay}%`).total || 0;
     const tongTien = db.prepare('SELECT SUM(thanh_tien) as total FROM fuel_logs WHERE ngay_gio LIKE ?').get(`${thangNay}%`).total || 0;
     const xeHoatDong = db.prepare("SELECT count(*) as count FROM vehicles WHERE trang_thai = 'Đang công tác'").get().count || 0;
-    const tongKm = db.prepare("SELECT SUM(quang_duong) as total FROM fuel_logs WHERE ngay_gio LIKE ?").get(`${thangNay}%`).total || 0;
+    const tongKm = db.prepare("SELECT SUM(quang_duong) as total FROM fuel_logs WHERE ngay_gio LIKE ? AND muc_dich = 'CONG_TAC'").get(`${thangNay}%`).total || 0;
 
     return {
         tongLuong: tongLuong.toFixed(1),
@@ -286,23 +322,20 @@ exports.layThongKeDashboard = () => {
 
 exports.layBaoCaoTuyChinh = (filter) => {
     let sql = `
-        SELECT f.id, f.ngay_gio, v.bien_so, d.ho_ten as ten_tai_xe,
-               f.so_phieu, f.so_lenh, m.ten_nhiem_vu,
+        SELECT f.id, f.ngay_gio, v.bien_so, v.loai_phuong_tien, d.ho_ten as ten_tai_xe, d.cap_bac,
                f.odo_cu, f.odo_moi, f.quang_duong, 
-               
-               -- Hiển thị chi tiết
-               f.lit_xe_cap, f.lit_xe_mua,
-               f.lit_may_cap, f.lit_may_mua,
-               f.tong_lit_cap, f.tong_lit_mua, f.so_luong as tong_cong_lit,
-               
+               f.so_luong, f.so_lit_cap, f.so_lit_mua, f.don_gia, f.don_gia_mua,
                f.thanh_tien,
-               ft.ten_loai as ten_nl, v_may.bien_so as ten_may
+               f.muc_dich, ft.ten_loai, ft.don_vi,
+               f.so_phieu, f.so_lenh, dep.ten_co_quan, f.noi_dung, f.diem_den, m.ten_nhiem_vu,
+               vm.bien_so as may_bien_so, f.may_lit_cap, f.may_lit_mua
         FROM fuel_logs f
         JOIN vehicles v ON f.xe_id = v.id
         JOIN drivers d ON f.tai_xe_id = d.id
+        LEFT JOIN vehicles vm ON f.may_id = vm.id
         LEFT JOIN fuel_types ft ON f.loai_nhien_lieu_id = ft.id
         LEFT JOIN missions m ON f.nhiem_vu_id = m.id
-        LEFT JOIN vehicles v_may ON f.thiet_bi_id = v_may.id
+        LEFT JOIN departments dep ON f.co_quan_id = dep.id
         WHERE 1=1
     `;
     const params = [];
@@ -330,52 +363,49 @@ exports.layBaoCaoTuyChinh = (filter) => {
 };
 
 exports.capPhatNhienLieu = (data) => {
-    const xe = db.prepare('SELECT odo_hien_tai FROM vehicles WHERE id = ?').get(data.xe_id);
+    const xe = db.prepare('SELECT odo_hien_tai, loai_phuong_tien FROM vehicles WHERE id = ?').get(data.xe_id);
 
-    // Tính ODO
     let odo_cu = xe.odo_hien_tai;
-    let odo_moi = data.odo_moi;
-    let quang_duong = odo_moi - odo_cu;
-    if (quang_duong < 0) quang_duong = 0;
+    let quang_duong = 0;
+    let odo_save = data.odo_moi;
 
-    // Tính tổng hợp
-    const tong_lit_cap = (data.lit_xe_cap || 0) + (data.lit_may_cap || 0);
-    const tong_lit_mua = (data.lit_xe_mua || 0) + (data.lit_may_mua || 0);
-    const so_luong = tong_lit_cap + tong_lit_mua;
+    if (data.muc_dich === 'MAY_PHAT' || xe.loai_phuong_tien === 'MAY_PHAT') {
+        odo_cu = 0;
+        odo_save = 0;
+        quang_duong = 0;
+    } else {
+        quang_duong = data.odo_moi - xe.odo_hien_tai;
+        if (quang_duong < 0) quang_duong = 0;
+    }
 
-    // Tính thành tiền (Server re-calculation for security)
-    // Xe Cost = (XeCap * GiaKho) + (XeMua * GiaXeMua)
-    // May Cost = (MayCap * GiaKho) + (MayMua * GiaMayMua)
-    const cost_xe = ((data.lit_xe_cap || 0) * (data.don_gia_kho || 0)) + ((data.lit_xe_mua || 0) * (data.gia_xe_mua || 0));
-    const cost_may = ((data.lit_may_cap || 0) * (data.don_gia_kho || 0)) + ((data.lit_may_mua || 0) * (data.gia_may_mua || 0));
-    const thanh_tien = cost_xe + cost_may;
+    // Calculate fields
+    // so_luong = tong cong (xe: cap + mua) + (may: cap + mua)
+    const tong_so_luong = (data.so_lit_cap || 0) + (data.so_lit_mua || 0) + (data.may_lit_cap || 0) + (data.may_lit_mua || 0);
 
+    // Thanh tien = Xe + May
+    const tien_xe = ((data.so_lit_cap || 0) * (data.don_gia || 0)) + ((data.so_lit_mua || 0) * (data.don_gia_mua || 0));
+    const tien_may = ((data.may_lit_cap || 0) * (data.may_gia_cap || 0)) + ((data.may_lit_mua || 0) * (data.may_gia_mua || 0));
+    const thanh_tien = tien_xe + tien_may;
+
+    // Insert đầy đủ trường V5.2
     const insert = db.prepare(`
     INSERT INTO fuel_logs (
-        xe_id, tai_xe_id, loai_nhien_lieu_id, nhiem_vu_id, thiet_bi_id, co_quan_id,
-        ngay_gio, so_phieu, ngay_phieu, so_lenh, ngay_lenh,
-        diem_den, noi_dung, ngay_di, gio_di, ngay_ve, gio_ve,
-        odo_cu, odo_moi, quang_duong,
-        
-        lit_xe_cap, lit_xe_mua, gia_xe_mua,
-        lit_may_cap, lit_may_mua, gia_may_mua,
-        don_gia_kho,
-        tong_lit_cap, tong_lit_mua, so_luong, thanh_tien,
-        
-        nguoi_tao
+        xe_id, tai_xe_id, loai_nhien_lieu_id, muc_dich, ngay_gio, 
+        odo_cu, odo_moi, quang_duong, 
+        so_luong, so_lit_cap, so_lit_mua, don_gia, don_gia_mua, 
+        thanh_tien, nguoi_tao,
+        nhom_c, so_phieu, ngay_phieu, so_lenh, ngay_lenh, co_quan_id, noi_dung, diem_den, 
+        nhiem_vu_id, ngay_di, gio_di, ngay_ve, gio_ve,
+        may_id, may_loai_nl_id, may_lit_cap, may_gia_cap, may_lit_mua, may_gia_mua
     )
     VALUES (
-        @xe_id, @tai_xe_id, @loai_nhien_lieu_id, @nhiem_vu_id, @thiet_bi_id, @co_quan_id,
-        @ngay_gio, @so_phieu, @ngay_phieu, @so_lenh, @ngay_lenh,
-        @diem_den, @noi_dung, @ngay_di, @gio_di, @ngay_ve, @gio_ve,
-        @odo_cu, @odo_moi, @quang_duong,
-        
-        @lit_xe_cap, @lit_xe_mua, @gia_xe_mua,
-        @lit_may_cap, @lit_may_mua, @gia_may_mua,
-        @don_gia_kho,
-        @tong_lit_cap, @tong_lit_mua, @so_luong, @thanh_tien,
-        
-        @nguoi_tao
+        @xe_id, @tai_xe_id, @loai_nhien_lieu_id, @muc_dich, @ngay_gio, 
+        @odo_cu, @odo_moi, @quang_duong, 
+        @so_luong, @so_lit_cap, @so_lit_mua, @don_gia, @don_gia_mua, 
+        @thanh_tien, @nguoi_tao,
+        @nhom_c, @so_phieu, @ngay_phieu, @so_lenh, @ngay_lenh, @co_quan_id, @noi_dung, @diem_den, 
+        @nhiem_vu_id, @ngay_di, @gio_di, @ngay_ve, @gio_ve,
+        @may_id, @may_loai_nl_id, @may_lit_cap, @may_gia_cap, @may_lit_mua, @may_gia_mua
     )
   `);
 
@@ -385,14 +415,15 @@ exports.capPhatNhienLieu = (data) => {
         insert.run({
             ...data,
             odo_cu: odo_cu,
+            odo_moi: odo_save,
             quang_duong: quang_duong,
-            tong_lit_cap: tong_lit_cap,
-            tong_lit_mua: tong_lit_mua,
-            so_luong: so_luong,
+            so_luong: tong_so_luong,
             thanh_tien: thanh_tien
         });
 
-        updateXe.run(odo_moi, data.xe_id);
+        if (data.muc_dich === 'CONG_TAC' && xe.loai_phuong_tien !== 'MAY_PHAT') {
+            updateXe.run(data.odo_moi, data.xe_id);
+        }
     });
 
     return transaction();

@@ -1,4 +1,5 @@
 
+
 const { ipcRenderer } = require('electron');
 
 // GLOBAL STATE
@@ -26,6 +27,10 @@ window.switchTab = (tabId) => {
     if (tabId === 'tab-hoso-xe') renderVehicles();
     if (tabId === 'tab-hoso-taixe') renderDrivers();
     if (tabId === 'tab-danhmuc') renderMasterData();
+
+    if (tabId === 'tab-settings') {
+        document.getElementById('form-doimatkhau').reset();
+    }
 };
 
 // --- AUTH ---
@@ -51,6 +56,27 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => location.reload());
+
+// --- SETTINGS (Password Change) ---
+document.getElementById('form-doimatkhau').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const oldPass = document.getElementById('set-old-pass').value;
+    const newPass = document.getElementById('set-new-pass').value;
+    const confirmPass = document.getElementById('set-confirm-pass').value;
+
+    if (newPass !== confirmPass) {
+        alert('Mật khẩu mới không khớp!');
+        return;
+    }
+
+    const res = await ipcRenderer.invoke('hethong:doiMatKhau', currentUser.id, oldPass, newPass);
+    if (res.success) {
+        alert('Đổi mật khẩu thành công! Vui lòng đăng nhập lại.');
+        location.reload();
+    } else {
+        alert('Lỗi: ' + res.error);
+    }
+});
 
 // --- DATA LOADING ---
 async function loadAllData() {
@@ -93,9 +119,17 @@ window.loadReportData = async () => {
     tbody.innerHTML = logs.map(log => {
         // Display split logic
         let qtyDisplay = '';
-        if (log.so_lit_cap > 0) qtyDisplay += `<div class="text-success"><span class="fw-bold">${log.so_lit_cap}</span> (Kho)</div>`;
-        if (log.so_lit_mua > 0) qtyDisplay += `<div class="text-warning text-dark"><span class="fw-bold">${log.so_lit_mua}</span> (Mua)</div>`;
+        if (log.so_lit_cap > 0) qtyDisplay += `<div class="text-success small"><span class="fw-bold">${log.so_lit_cap}</span> (Xe/Kho)</div>`;
+        if (log.so_lit_mua > 0) qtyDisplay += `<div class="text-warning text-dark small"><span class="fw-bold">${log.so_lit_mua}</span> (Xe/Mua)</div>`;
+
+        // Machine display
+        if (log.may_lit_cap > 0) qtyDisplay += `<div class="text-secondary small border-top pt-1 mt-1"><span class="fw-bold">${log.may_lit_cap}</span> (Máy/Kho)</div>`;
+        if (log.may_lit_mua > 0) qtyDisplay += `<div class="text-secondary small"><span class="fw-bold">${log.may_lit_mua}</span> (Máy/Mua)</div>`;
+
         if (!qtyDisplay) qtyDisplay = `<div class="fw-bold">${log.so_luong}</div>`;
+
+        let mayInfo = '';
+        if (log.may_bien_so) mayInfo = `<div class="small border-top text-muted mt-1 pt-1"><i class="fas fa-plug"></i> ${log.may_bien_so}</div>`;
 
         return `
         <tr>
@@ -110,6 +144,7 @@ window.loadReportData = async () => {
             <td>
                 <div class="fw-bold">${log.bien_so}</div>
                 <div class="small">${log.loai_phuong_tien}</div>
+                ${mayInfo}
             </td>
             <td>
                 <div>${log.ten_co_quan || '-'}</div>
@@ -226,8 +261,12 @@ async function setupCapPhatForm() {
 
     // Populate Vehicles
     const xeSelect = document.getElementById('cp-xe');
+    // Filter out machines for the main vehicle select if preferred, or keep all. 
+    // Usually main vehicle is 'XE'. Machines are 'MAY_PHAT'.
+    const cars = vehicleCache.filter(v => v.loai_phuong_tien !== 'MAY_PHAT');
+
     xeSelect.innerHTML = `<option value="">-- Chọn Phương Tiện --</option>` +
-        vehicleCache.map(v => `<option value="${v.id}" 
+        cars.map(v => `<option value="${v.id}" 
             data-bienso="${v.bien_so}"
             data-type="${v.loai_phuong_tien}" 
             data-odo="${v.odo_hien_tai}" 
@@ -235,6 +274,11 @@ async function setupCapPhatForm() {
             data-dm="${v.dinh_muc}">
             ${v.bien_so} - ${v.nhan_hieu}
         </option>`).join('');
+
+    // Populate Machines (V5.2)
+    const machines = vehicleCache.filter(v => v.loai_phuong_tien === 'MAY_PHAT');
+    document.getElementById('cp-may').innerHTML = `<option value="">-- Không có máy kèm theo --</option>` +
+        machines.map(m => `<option value="${m.id}" data-dongco="${m.loai_dong_co}">${m.bien_so} - ${m.nhan_hieu}</option>`).join('');
 
     // Populate Drivers
     document.getElementById('cp-taixe').innerHTML = `<option value="">-- Chọn Người Lái --</option>` +
@@ -249,6 +293,7 @@ async function setupCapPhatForm() {
         departmentsCache.map(d => `<option value="${d.id}">${d.ten_co_quan}</option>`).join('');
 
     document.getElementById('cp-loainl').innerHTML = '<option value="">-- Chọn Xe Trước --</option>';
+    document.getElementById('cp-may-loainl').innerHTML = '<option value="">-- Chọn Máy Trước --</option>';
 }
 
 // Logic: Chọn Xe -> Hiển thị Info & Lọc nhiên liệu
@@ -259,7 +304,7 @@ document.getElementById('cp-xe').addEventListener('change', (e) => {
     if (opt.value) {
         // V5.0: Fill Readonly Fields
         document.getElementById('cp-view-bienso').value = opt.getAttribute('data-bienso');
-        document.getElementById('cp-view-loaixe').value = opt.getAttribute('data-type') === 'MAY_PHAT' ? 'MÁY PHÁT' : 'Ô TÔ';
+        document.getElementById('cp-view-loaixe').value = 'Ô TÔ';
         document.getElementById('cp-view-dinhmuc').value = opt.getAttribute('data-dm');
 
         const odo = parseInt(opt.getAttribute('data-odo')) || 0;
@@ -287,6 +332,25 @@ document.getElementById('cp-xe').addEventListener('change', (e) => {
     updateCalc();
 });
 
+// Logic: Chọn Máy -> Lọc nhiên liệu cho máy
+document.getElementById('cp-may').addEventListener('change', (e) => {
+    const opt = e.target.selectedOptions[0];
+    const fuelSelect = document.getElementById('cp-may-loainl');
+
+    if (opt.value) {
+        const dongCo = opt.getAttribute('data-dongco'); // MAY_XANG or MAY_DAU
+        let allowedGroups = dongCo === 'MAY_XANG' ? ['XANG', 'NHOT'] : ['DAU', 'NHOT'];
+        const filteredFuels = fuelTypesCache.filter(f => allowedGroups.includes(f.nhom_nl));
+
+        fuelSelect.innerHTML = `<option value="">-- Chọn NL Máy --</option>` +
+            filteredFuels.map(f => `<option value="${f.id}">${f.ten_loai}</option>`).join('');
+    } else {
+        fuelSelect.innerHTML = '<option value="">-- Chọn Máy Trước --</option>';
+    }
+    updateCalc();
+});
+
+
 // ODO Bi-directional
 document.getElementById('cp-odo-moi').addEventListener('input', (e) => {
     const odoCu = parseInt(document.getElementById('cp-odo-cu').value) || 0;
@@ -299,24 +363,35 @@ document.getElementById('cp-quangduong').addEventListener('input', (e) => {
     if (km >= 0) document.getElementById('cp-odo-moi').value = odoCu + km;
 });
 
-// Split Calc Logic
+// Split Calc Logic (Updated V5.2)
 function updateCalc() {
+    // Xe
     const litCap = parseFloat(document.getElementById('cp-lit-cap').value) || 0;
     const giaCap = parseFloat(document.getElementById('cp-gia-cap').value) || 0;
-
     const litMua = parseFloat(document.getElementById('cp-lit-mua').value) || 0;
     const giaMua = parseFloat(document.getElementById('cp-gia-mua').value) || 0;
 
-    const total = (litCap * giaCap) + (litMua * giaMua);
+    // May
+    const litMayCap = parseFloat(document.getElementById('cp-may-lit-cap').value) || 0;
+    const giaMayCap = parseFloat(document.getElementById('cp-may-gia-cap').value) || 0;
+    const litMayMua = parseFloat(document.getElementById('cp-may-lit-mua').value) || 0;
+    const giaMayMua = parseFloat(document.getElementById('cp-may-gia-mua').value) || 0;
+
+    const total = (litCap * giaCap) + (litMua * giaMua) + (litMayCap * giaMayCap) + (litMayMua * giaMayMua);
     document.getElementById('cp-thanhtien').value = new Intl.NumberFormat('vi-VN').format(total);
 }
 
-['cp-lit-cap', 'cp-gia-cap', 'cp-lit-mua', 'cp-gia-mua'].forEach(id => document.getElementById(id).addEventListener('input', updateCalc));
+// Attach calc listeners
+['cp-lit-cap', 'cp-gia-cap', 'cp-lit-mua', 'cp-gia-mua',
+    'cp-may-lit-cap', 'cp-may-gia-cap', 'cp-may-lit-mua', 'cp-may-gia-mua'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateCalc);
+    });
 
 document.getElementById('form-capphat').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // Gather massive V5.0 data
+    // Gather massive V5.0 + V5.2 data
     const data = {
         // System / Old logic fields
         xe_id: document.getElementById('cp-xe').value,
@@ -328,11 +403,19 @@ document.getElementById('form-capphat').addEventListener('submit', async (e) => 
 
         odo_moi: parseInt(document.getElementById('cp-odo-moi').value) || 0,
 
-        // Split Fuel
+        // Split Fuel (Xe)
         so_lit_cap: parseFloat(document.getElementById('cp-lit-cap').value) || 0,
         don_gia: parseFloat(document.getElementById('cp-gia-cap').value) || 0,
         so_lit_mua: parseFloat(document.getElementById('cp-lit-mua').value) || 0,
         don_gia_mua: parseFloat(document.getElementById('cp-gia-mua').value) || 0,
+
+        // Machine Fields (V5.2)
+        may_id: document.getElementById('cp-may').value || null,
+        may_loai_nl_id: document.getElementById('cp-may-loainl').value || null,
+        may_lit_cap: parseFloat(document.getElementById('cp-may-lit-cap').value) || 0,
+        may_gia_cap: parseFloat(document.getElementById('cp-may-gia-cap').value) || 0,
+        may_lit_mua: parseFloat(document.getElementById('cp-may-lit-mua').value) || 0,
+        may_gia_mua: parseFloat(document.getElementById('cp-may-gia-mua').value) || 0,
 
         nguoi_tao: currentUser.username,
 
